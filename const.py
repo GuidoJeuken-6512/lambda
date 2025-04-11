@@ -12,6 +12,11 @@ CONF_SLAVE_ID = "slave_id"
 DEBUG = False
 DEBUG_PREFIX = "lambda_wp"
 
+FIRMWARE_VERSION = {
+    "V0.0.4-3K"
+    "V0.0.5-3K"
+}
+
 # Logging levels
 LOG_LEVELS = {
     "error": "ERROR",

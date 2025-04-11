@@ -66,7 +66,7 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_NAME, default=DEFAULT_NAME): str,
-                    vol.Required(CONF_HOST): str,
+                    vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                     vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                     vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): int,
                     vol.Optional("debug_mode", default=False): bool,
@@ -97,27 +97,10 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        # Hole die aktuellen Optionen
         options = self.config_entry.options
 
-        # Erstelle das Options-Schema
         schema = {
-            vol.Optional(
-                "hot_water_current_temp_sensor",
-                default=options.get("hot_water_current_temp_sensor", "boil1_actual_high_temperature"),
-            ): vol.In(get_sensor_options()),
-            vol.Optional(
-                "hot_water_target_temp_sensor",
-                default=options.get("hot_water_target_temp_sensor", "boil1_target_high_temperature"),
-            ): vol.In(get_sensor_options()),
-            vol.Optional(
-                "heating_circuit_current_temp_sensor",
-                default=options.get("heating_circuit_current_temp_sensor", "hc1_room_device_temperature"),
-            ): vol.In(get_sensor_options()),
-            vol.Optional(
-                "heating_circuit_target_temp_sensor",
-                default=options.get("heating_circuit_target_temp_sensor", "hc1_target_room_temperature"),
-            ): vol.In(get_sensor_options()),
+            # Temperaturbereiche
             vol.Optional(
                 "hot_water_min_temp",
                 default=options.get("hot_water_min_temp", 40),
@@ -134,6 +117,18 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
                 "heating_circuit_max_temp",
                 default=options.get("heating_circuit_max_temp", 35),
             ): vol.All(vol.Coerce(float), vol.Range(min=5, max=35)),
+
+            # Update-Intervall
+            vol.Optional(
+                "update_interval",
+                default=options.get("update_interval", 30),
+            ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
+
+            # Firmware-Version
+            vol.Optional(
+                "firmware_version",
+                default=options.get("firmware_version", "V0.0.4-3K"),
+            ): vol.In(["V0.0.4-3K", "V0.0.5-3K"]),
         }
 
         return self.async_show_form(
