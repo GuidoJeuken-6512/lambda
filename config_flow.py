@@ -22,6 +22,7 @@ from .const import (
     LOG_LEVELS,
     SENSOR_TYPES,
     CONF_SLAVE_ID,
+    FIRMWARE_VERSION,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,6 +62,8 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
 
+        firmware_options = list(FIRMWARE_VERSION.keys())
+
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
@@ -70,6 +73,10 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                     vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): int,
                     vol.Optional("debug_mode", default=False): bool,
+                    vol.Optional(
+                        "firmware_version",
+                        default="V0.0.4-3K",
+                    ): vol.In(firmware_options),
                 }
             ),
             errors=errors,
@@ -81,14 +88,10 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Create the options flow."""
-        return LambdaOptionsFlow(config_entry)
+        return LambdaOptionsFlow()
 
 class LambdaOptionsFlow(config_entries.OptionsFlow):
     """Handle options."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -98,6 +101,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         options = self.config_entry.options
+        firmware_options = list(FIRMWARE_VERSION.keys())
 
         schema = {
             # Temperaturbereiche
@@ -128,7 +132,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
             vol.Optional(
                 "firmware_version",
                 default=options.get("firmware_version", "V0.0.4-3K"),
-            ): vol.In(["V0.0.4-3K", "V0.0.5-3K"]),
+            ): vol.In(firmware_options),
         }
 
         return self.async_show_form(

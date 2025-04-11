@@ -13,8 +13,11 @@ DEBUG = False
 DEBUG_PREFIX = "lambda_wp"
 
 FIRMWARE_VERSION = {
-    "V0.0.4-3K"
-    "V0.0.5-3K"
+    "V0.0.3-3K": "V0.0.3-3K",
+    "V0.0.4-3K": "V0.0.4-3K",
+    "V0.0.5-3K": "V0.0.5-3K",
+    "V0.0.6-3K": "V0.0.6-3K",
+    "V0.0.7-3K": "V0.0.7-3K",
 }
 
 # Logging levels
