@@ -5,6 +5,9 @@ DEFAULT_PORT = 502
 DEFAULT_SLAVE_ID = 1
 DEFAULT_HOST = "192.168.178.125"
 
+# Konfigurationskonstanten
+CONF_SLAVE_ID = "slave_id"
+
 # Debug configuration
 DEBUG = False
 DEBUG_PREFIX = "lambda_wp"

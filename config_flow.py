@@ -19,20 +19,25 @@ from .const import (
     DEFAULT_SLAVE_ID,
     DEFAULT_HOST,
     DEBUG,
-    LOG_LEVELS
+    LOG_LEVELS,
+    SENSOR_TYPES,
+    CONF_SLAVE_ID,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
-    {
-        vol.Required("host", default=DEFAULT_HOST): str,
-        vol.Required("port", default=DEFAULT_PORT): int,
-        vol.Required("slave_id", default=DEFAULT_SLAVE_ID): int,
-        vol.Optional("name", default=DEFAULT_NAME): str,
-        vol.Optional("debug", default=False): bool,
-    }
-)
+def get_sensor_options() -> dict[str, Any]:
+    """Get sensor options from SENSOR_TYPES."""
+    options = {}
+    for sensor_key, sensor_info in SENSOR_TYPES.items():
+        if "temperature" in sensor_key.lower():
+            options[sensor_key] = f"{sensor_info['name']} (Register {sensor_info['address']})"
+    return options
+
+async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
+    """Validate the user input allows us to connect."""
+    # Hier können wir später eine Validierung hinzufügen
+    pass
 
 class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Lambda WP."""
@@ -44,35 +49,96 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step."""
-        if user_input is None:
-            return self.async_show_form(
-                step_id="user", data_schema=STEP_USER_DATA_SCHEMA
-            )
+        errors: dict[str, str] = {}
 
-        errors = {}
-
-        try:
-            # Validate the connection
-            await self._test_connection(user_input)
-        except CannotConnect:
-            errors["base"] = "cannot_connect"
-        except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected exception")
-            errors["base"] = "unknown"
-
-        if not errors:
-            # Set debug logging if enabled
-            if user_input.get("debug", False):
-                logging.getLogger(DOMAIN).setLevel(logging.DEBUG)
-                _LOGGER.info("Debug logging enabled for Lambda WP integration")
-
-            return self.async_create_entry(
-                title=user_input["name"],
-                data=user_input,
-            )
+        if user_input is not None:
+            try:
+                await validate_input(self.hass, user_input)
+                return self.async_create_entry(
+                    title=user_input[CONF_NAME], data=user_input
+                )
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_NAME, default=DEFAULT_NAME): str,
+                    vol.Required(CONF_HOST): str,
+                    vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
+                    vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): int,
+                    vol.Optional("debug_mode", default=False): bool,
+                }
+            ),
+            errors=errors,
+        )
+
+    @staticmethod
+    @config_entries.callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Create the options flow."""
+        return LambdaOptionsFlow(config_entry)
+
+class LambdaOptionsFlow(config_entries.OptionsFlow):
+    """Handle options."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        # Hole die aktuellen Optionen
+        options = self.config_entry.options
+
+        # Erstelle das Options-Schema
+        schema = {
+            vol.Optional(
+                "hot_water_current_temp_sensor",
+                default=options.get("hot_water_current_temp_sensor", "boil1_actual_high_temperature"),
+            ): vol.In(get_sensor_options()),
+            vol.Optional(
+                "hot_water_target_temp_sensor",
+                default=options.get("hot_water_target_temp_sensor", "boil1_target_high_temperature"),
+            ): vol.In(get_sensor_options()),
+            vol.Optional(
+                "heating_circuit_current_temp_sensor",
+                default=options.get("heating_circuit_current_temp_sensor", "hc1_room_device_temperature"),
+            ): vol.In(get_sensor_options()),
+            vol.Optional(
+                "heating_circuit_target_temp_sensor",
+                default=options.get("heating_circuit_target_temp_sensor", "hc1_target_room_temperature"),
+            ): vol.In(get_sensor_options()),
+            vol.Optional(
+                "hot_water_min_temp",
+                default=options.get("hot_water_min_temp", 40),
+            ): vol.All(vol.Coerce(float), vol.Range(min=20, max=80)),
+            vol.Optional(
+                "hot_water_max_temp",
+                default=options.get("hot_water_max_temp", 60),
+            ): vol.All(vol.Coerce(float), vol.Range(min=20, max=80)),
+            vol.Optional(
+                "heating_circuit_min_temp",
+                default=options.get("heating_circuit_min_temp", 15),
+            ): vol.All(vol.Coerce(float), vol.Range(min=5, max=35)),
+            vol.Optional(
+                "heating_circuit_max_temp",
+                default=options.get("heating_circuit_max_temp", 35),
+            ): vol.All(vol.Coerce(float), vol.Range(min=5, max=35)),
+        }
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema),
         )
 
     async def _test_connection(self, user_input: dict[str, Any]) -> None:

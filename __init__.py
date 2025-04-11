@@ -6,7 +6,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, DEBUG, DEBUG_PREFIX, LOG_LEVELS, SENSOR_TYPES
@@ -29,8 +29,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Lambda from a config entry."""
     _LOGGER.debug("Setting up Lambda integration with config: %s", entry.data)
     
-    coordinator = LambdaDataUpdateCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        coordinator = LambdaDataUpdateCoordinator(hass, entry)
+        await coordinator.async_config_entry_first_refresh()
+    except Exception as ex:
+        _LOGGER.error("Failed to initialize Lambda integration: %s", ex)
+        return False
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
@@ -45,6 +49,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("Unloading Lambda integration")
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, ["sensor", "climate"]):
+        if entry.entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+            if coordinator.client:
+                await hass.async_add_executor_job(coordinator.client.close)
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
 
@@ -78,7 +86,8 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.error("Could not connect to Modbus TCP at %s:%s", 
                             self.entry.data["host"], 
                             self.entry.data["port"])
-                raise ConnectionError("Could not connect to Modbus TCP")
+                self.client = None
+                raise UpdateFailed("Could not connect to Modbus TCP")
 
         try:
             data = {}
@@ -123,12 +132,19 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
                     
             if not data:
                 _LOGGER.error("No sensor data could be read")
-                raise ModbusException("No sensor data available")
+                raise UpdateFailed("No sensor data available")
                 
             return data
 
         except ModbusException as ex:
             _LOGGER.error("Modbus communication error: %s", ex)
-            await self.hass.async_add_executor_job(self.client.close)
+            if self.client:
+                await self.hass.async_add_executor_job(self.client.close)
             self.client = None
-            raise
+            raise UpdateFailed(f"Modbus communication error: {ex}")
+        except Exception as ex:
+            _LOGGER.error("Unexpected error: %s", ex)
+            if self.client:
+                await self.hass.async_add_executor_job(self.client.close)
+            self.client = None
+            raise UpdateFailed(f"Unexpected error: {ex}")
