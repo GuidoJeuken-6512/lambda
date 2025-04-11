@@ -1,0 +1,11 @@
+{
+  "domain": "lambda",
+  "name": "Lambda Heat Pump",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/yourusername/lambda_wp",
+  "issue_tracker": "https://github.com/yourusername/lambda_wp/issues",
+  "requirements": ["pymodbus==3.6.1"],
+  "codeowners": ["@yourusername"],
+  "iot_class": "local_polling"
+}
