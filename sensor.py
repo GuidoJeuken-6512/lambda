@@ -114,5 +114,5 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
         if value is None:
             return None
             
-        # Skaliere den Wert entsprechend der Konfiguration
-        return value * self._config["scale"]
+        # Die Skalierung wurde bereits im Coordinator angewendet
+        return value

@@ -7,7 +7,7 @@ alwaysApply: true
 # Home Assistant 2025.3 Kompatibilitätsregeln
 
 ## Allgemeine Regeln
-- Alle Imports müssen mit der neuesten Home Assistant 2025.3 API kompatibel sein
+- Alle Imports müssen mit der neuesten Home Assistant mindestens 2025.3 API kompatibel sein
 - Keine veralteten oder veralteten APIs verwenden
 - Neue Features und Best Practices von HA 2025.3 bevorzugen
 
