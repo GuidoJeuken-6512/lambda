@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES
+from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,41 +29,88 @@ async def async_setup_entry(
     # Hole die Konfigurationsoptionen
     options = entry.options
     
-    # Erstelle die Klima-Entitäten mit den konfigurierten Optionen
-    entities = [
-        LambdaClimateEntity(
-            coordinator=coordinator,
-            entry=entry,
-            climate_type="hot_water",
-            name="Hot Water",
-            current_temp_sensor=options.get("hot_water_current_temp_sensor", "boil1_actual_high_temperature"),
-            target_temp_sensor=options.get("hot_water_target_temp_sensor", "boil1_target_high_temperature"),
-            min_temp=options.get("hot_water_min_temp", 40),
-            max_temp=options.get("hot_water_max_temp", 60),
-            temp_step=1
-        ),
-        LambdaClimateEntity(
-            coordinator=coordinator,
-            entry=entry,
-            climate_type="heating_circuit",
-            name="Heating Circuit",
-            current_temp_sensor=options.get("heating_circuit_current_temp_sensor", "hc1_room_device_temperature"),
-            target_temp_sensor=options.get("heating_circuit_target_temp_sensor", "hc1_target_room_temperature"),
-            min_temp=options.get("heating_circuit_min_temp", 15),
-            max_temp=options.get("heating_circuit_max_temp", 35),
-            temp_step=0.5
+    # Hole die konfigurierte Firmware-Version
+    configured_fw = entry.data.get("firmware_version", "V0.0.4-3K")
+    fw_version = int(FIRMWARE_VERSION.get(configured_fw, "1"))
+    
+    _LOGGER.debug(
+        "Climate Firmware-Version Setup - Configured: %s, Numeric Version: %s, Raw Entry Data: %s",
+        configured_fw,
+        fw_version,
+        entry.data
+    )
+    
+    # Funktion zur Überprüfung der Sensor-Firmware-Kompatibilität
+    def is_sensor_compatible(sensor_id: str) -> bool:
+        sensor_config = SENSOR_TYPES.get(sensor_id)
+        if not sensor_config:
+            _LOGGER.warning("Sensor '%s' not found in SENSOR_TYPES.", sensor_id)
+            return False
+        sensor_fw = sensor_config.get("firmware_version", 1)
+        is_compatible = sensor_fw <= fw_version
+        
+        _LOGGER.debug(
+            "Climate Sensor Compatibility Check - Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s",
+            sensor_id,
+            sensor_fw,
+            fw_version,
+            is_compatible
         )
-    ]
+        
+        return is_compatible
+        
+    entities = []
+
+    # Hot Water Entity
+    hw_current_temp_sensor = options.get("hot_water_current_temp_sensor", "boil1_actual_high_temperature")
+    hw_target_temp_sensor = options.get("hot_water_target_temp_sensor", "boil1_target_high_temperature")
+
+    if is_sensor_compatible(hw_current_temp_sensor) and is_sensor_compatible(hw_target_temp_sensor):
+        entities.append(
+            LambdaClimateEntity(
+                coordinator=coordinator,
+                entry=entry,
+                climate_type="hot_water",
+                name="Hot Water",
+                current_temp_sensor=hw_current_temp_sensor,
+                target_temp_sensor=hw_target_temp_sensor,
+                min_temp=options.get("hot_water_min_temp", 40),
+                max_temp=options.get("hot_water_max_temp", 60),
+                temp_step=1
+            )
+        )
+
+    # Heating Circuit Entity
+    hc_current_temp_sensor = options.get("heating_circuit_current_temp_sensor", "hc1_room_device_temperature")
+    hc_target_temp_sensor = options.get("heating_circuit_target_temp_sensor", "hc1_target_room_temperature")
+
+    if is_sensor_compatible(hc_current_temp_sensor) and is_sensor_compatible(hc_target_temp_sensor):
+        entities.append(
+            LambdaClimateEntity(
+                coordinator=coordinator,
+                entry=entry,
+                climate_type="heating_circuit",
+                name="Heating Circuit",
+                current_temp_sensor=hc_current_temp_sensor,
+                target_temp_sensor=hc_target_temp_sensor,
+                min_temp=options.get("heating_circuit_min_temp", 15),
+                max_temp=options.get("heating_circuit_max_temp", 35),
+                temp_step=0.5
+            )
+        )
     
     async_add_entities(entities)
 
 class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
     """Representation of a Lambda climate entity."""
 
+    _attr_has_entity_name = True
+    _attr_should_poll = False
     _attr_temperature_unit = "°C"
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _attr_hvac_modes = [HVACMode.HEAT]  # Nur HEAT-Modus
     _attr_hvac_mode = HVACMode.HEAT     # Immer im HEAT-Modus
+    _attr_firmware_version = 1
 
     def __init__(
         self,
@@ -84,7 +131,7 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
         self._current_temp_sensor = current_temp_sensor
         self._target_temp_sensor = target_temp_sensor
         
-        self._attr_name = f"{entry.data.get(CONF_NAME, DEFAULT_NAME)} {name}"
+        self._attr_name = name
         self._attr_unique_id = f"{entry.entry_id}_{climate_type}"
         self._attr_min_temp = min_temp
         self._attr_max_temp = max_temp

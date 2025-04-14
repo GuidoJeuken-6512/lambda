@@ -98,6 +98,17 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
+            # Wenn die Firmware-Version geändert wurde, aktualisiere die Hauptdaten
+            if "firmware_version" in user_input:
+                new_data = dict(self.config_entry.data)
+                new_data["firmware_version"] = user_input["firmware_version"]
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    data=new_data
+                )
+                # Entferne die Firmware-Version aus den Options
+                user_input.pop("firmware_version")
+            
             return self.async_create_entry(title="", data=user_input)
 
         options = self.config_entry.options
@@ -131,7 +142,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
             # Firmware-Version
             vol.Optional(
                 "firmware_version",
-                default=options.get("firmware_version", "V0.0.4-3K"),
+                default=self.config_entry.data.get("firmware_version", "V0.0.4-3K"),
             ): vol.In(firmware_options),
         }
 

@@ -13,11 +13,11 @@ DEBUG = False
 DEBUG_PREFIX = "lambda_wp"
 
 FIRMWARE_VERSION = {
-    "V0.0.3-3K": "V0.0.3-3K",
-    "V0.0.4-3K": "V0.0.4-3K",
-    "V0.0.5-3K": "V0.0.5-3K",
-    "V0.0.6-3K": "V0.0.6-3K",
-    "V0.0.7-3K": "V0.0.7-3K",
+    "V0.0.3-3K": "1",
+    "V0.0.4-3K": "2",
+    "V0.0.5-3K": "3",
+    "V0.0.6-3K": "4",
+    "V0.0.7-3K": "5",
 }
 
 # Logging levels
@@ -30,6 +30,15 @@ LOG_LEVELS = {
 
 SENSOR_TYPES = {
     # General Ambient
+    "aaaadummy": {
+        "address": 0,
+        "name": "Dummy für FW Selction",
+        "unit": None,
+        "scale": 1,
+        "precision": 0,
+        "data_type": "int16",
+        "firmware_version": 2,
+    },    
     "ambient_error_number": {
         "address": 0,
         "name": "Ambient Error Number",
@@ -37,6 +46,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "ambient_operating_state": {
         "address": 1,
@@ -45,6 +55,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "uint16",
+        "firmware_version": 1,
     },
     "ambient_temperature": {
         "address": 2,
@@ -53,6 +64,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "ambient_temperature_1h": {
         "address": 3,
@@ -61,6 +73,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "ambient_temperature_calculated": {
         "address": 4,
@@ -69,6 +82,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     # Heat Pump
     "hp1_error_state": {
@@ -78,6 +92,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "uint16",
+        "firmware_version": 1,
     },
     "hp1_error_number": {
         "address": 1001,
@@ -86,6 +101,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_state": {
         "address": 1002,
@@ -94,6 +110,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "uint16",
+        "firmware_version": 1,
     },
     "hp1_operating_state": {
         "address": 1003,
@@ -102,6 +119,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "uint16",
+        "firmware_version": 1,
     },
     "hp1_flow_line_temperature": {
         "address": 1004,
@@ -110,6 +128,7 @@ SENSOR_TYPES = {
         "scale": 0.01,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_return_line_temperature": {
         "address": 1005,
@@ -118,6 +137,7 @@ SENSOR_TYPES = {
         "scale": 0.01,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_volume_flow_heat_sink": {
         "address": 1006,
@@ -126,6 +146,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_energy_source_inlet_temperature": {
         "address": 1007,
@@ -134,6 +155,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_energy_source_outlet_temperature": {
         "address": 1008,
@@ -142,6 +164,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_volume_flow_energy_source": {
         "address": 1009,
@@ -150,6 +173,7 @@ SENSOR_TYPES = {
         "scale": 0.01,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_compressor_unit_rating": {
         "address": 1010,
@@ -158,6 +182,7 @@ SENSOR_TYPES = {
         "scale": 0.01,
         "precision": 0,
         "data_type": "uint16",
+        "firmware_version": 1,
     },
     "hp1_actual_heating_capacity": {
         "address": 1011,
@@ -166,6 +191,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_inverter_power_consumption": {
         "address": 1012,
@@ -174,6 +200,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_cop": {
         "address": 1013,
@@ -182,6 +209,7 @@ SENSOR_TYPES = {
         "scale": 0.01,
         "precision": 2,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_request_type": {
         "address": 1015,
@@ -190,6 +218,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_requested_flow_line_temperature": {
         "address": 1016,
@@ -198,6 +227,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_requested_return_line_temperature": {
         "address": 1017,
@@ -206,6 +236,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_requested_flow_to_return_line_temperature_difference": {
         "address": 1018,
@@ -214,6 +245,7 @@ SENSOR_TYPES = {
         "scale": 0.1,
         "precision": 1,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_relais_state_2nd_heating_stage": {
         "address": 1019,
@@ -222,6 +254,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "hp1_compressor_power_consumption_accumulated": {
         "address": 1020,
@@ -230,6 +263,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "int32",
+        "firmware_version": 1,
     },
     "hp1_compressor_thermal_energy_output_accumulated": {
         "address": 1022,
@@ -238,6 +272,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "int32",
+        "firmware_version": 1,
     },
     # Boiler
     "boil1_error_number": {
@@ -247,6 +282,7 @@ SENSOR_TYPES = {
         "scale": 1,
         "precision": 0,
         "data_type": "int16",
+        "firmware_version": 1,
     },
     "boil1_operating_state": {
         "address": 2001,
