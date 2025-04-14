@@ -2,6 +2,8 @@
 
 Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärmepumpen in Home Assistant über das Modbus/TCP Protokoll. Sie liest Sensordaten aus und ermöglicht die Steuerung von Klima-Entitäten (z.B. Warmwasser, Heizkreis).
 
+Wenn jemand mitarbeiten möchte, so kann er sich gern melden.
+
 ## Features
 
 *   Auslesen diverser Sensoren der Wärmepumpe (Temperaturen, Zustände, Energieverbrauch etc.).
@@ -48,6 +50,7 @@ Nach der Einrichtung können Sie einige Optionen über `Einstellungen` -> `Gerä
 ## Bekannte Probleme / TODO
 
 *   Die dynamische Handhabung mehrerer Wärmepumpen, Heizkreise, Pufferspeicher ist noch in Arbeit (siehe `docs/todo.txt`).
+*   Die Übersetzung in andere Sprachen
 
 ---
 
