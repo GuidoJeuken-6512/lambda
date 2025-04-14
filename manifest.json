@@ -7,5 +7,6 @@
   "issue_tracker": "https://github.com/yourusername/lambda_wp/issues",
   "requirements": ["pymodbus==3.6.1"],
   "codeowners": ["@yourusername"],
-  "iot_class": "local_polling"
+  "iot_class": "local_polling",
+  "min_ha_version": "2025.3.0"
 }

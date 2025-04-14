@@ -8,6 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 
 from .const import DOMAIN, DEBUG, DEBUG_PREFIX, LOG_LEVELS, SENSOR_TYPES
 
@@ -31,7 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     try:
         coordinator = LambdaDataUpdateCoordinator(hass, entry)
-        await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_refresh()
     except Exception as ex:
         _LOGGER.error("Failed to initialize Lambda integration: %s", ex)
         return False
@@ -43,6 +44,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up all platforms
     await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "climate"])
+
+    # Registriere Update-Listener
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -56,6 +61,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
 
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry."""
+    _LOGGER.debug("Reloading Lambda integration after config change")
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)
+
 class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching Lambda data."""
 
@@ -64,10 +75,10 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name="Lambda Coordinator",
-            update_interval=SCAN_INTERVAL
+            name=DOMAIN,
+            update_interval=SCAN_INTERVAL,
+            config_entry=entry,
         )
-        self.entry = entry
         self.client = None
         _LOGGER.debug("Initialized LambdaDataUpdateCoordinator")
 
@@ -79,13 +90,13 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
         if self.client is None:
             _LOGGER.debug("Creating new Modbus TCP client")
             self.client = ModbusTcpClient(
-                self.entry.data["host"],
-                port=self.entry.data["port"]
+                self.config_entry.data["host"],
+                port=self.config_entry.data["port"]
             )
             if not await self.hass.async_add_executor_job(self.client.connect):
                 _LOGGER.error("Could not connect to Modbus TCP at %s:%s", 
-                            self.entry.data["host"], 
-                            self.entry.data["port"])
+                            self.config_entry.data["host"], 
+                            self.config_entry.data["port"])
                 self.client = None
                 raise UpdateFailed("Could not connect to Modbus TCP")
 
@@ -96,6 +107,12 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
             # Read all sensor registers defined in SENSOR_TYPES
             for sensor_key, sensor_info in SENSOR_TYPES.items():
                 try:
+                    # Überspringe Dummy-Sensoren (erkennbar an "dummy" im Namen)
+                    if "dummy" in sensor_key.lower():
+                        _LOGGER.debug("Skipping dummy sensor: %s", sensor_key)
+                        data[sensor_key] = 0  # Setze einen Standardwert für Dummy-Sensoren
+                        continue
+
                     # Determine number of registers to read based on data type
                     count = 2 if sensor_info["data_type"] == "int32" else 1
                     
@@ -103,7 +120,7 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
                         self.client.read_holding_registers,
                         sensor_info["address"],
                         count,  # Number of registers to read
-                        self.entry.data.get("slave_id", 1)
+                        self.config_entry.data.get("slave_id", 1)
                     )
                     
                     if result.isError():
