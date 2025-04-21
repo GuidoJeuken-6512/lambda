@@ -71,7 +71,7 @@ async def async_setup_entry(
                 coordinator=coordinator,
                 entry=entry,
                 climate_type="hot_water",
-                name="Hot Water",
+                translation_key="hot_water",
                 current_temp_sensor=hw_current_temp_sensor,
                 target_temp_sensor=hw_target_temp_sensor,
                 min_temp=options.get("hot_water_min_temp", 40),
@@ -90,7 +90,7 @@ async def async_setup_entry(
                 coordinator=coordinator,
                 entry=entry,
                 climate_type="heating_circuit",
-                name="Heating Circuit",
+                translation_key="heating_circuit",
                 current_temp_sensor=hc_current_temp_sensor,
                 target_temp_sensor=hc_target_temp_sensor,
                 min_temp=options.get("heating_circuit_min_temp", 15),
@@ -117,7 +117,7 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
         coordinator,
         entry: ConfigEntry,
         climate_type: str,
-        name: str,
+        translation_key: str,
         current_temp_sensor: str,
         target_temp_sensor: str,
         min_temp: float,
@@ -131,7 +131,9 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
         self._current_temp_sensor = current_temp_sensor
         self._target_temp_sensor = target_temp_sensor
         
-        self._attr_name = name
+        # Setze den Übersetzungsschlüssel für den Namen
+        self._attr_translation_key = translation_key
+        # self._attr_name nicht setzen, damit Home Assistant die Übersetzung verwendet
         self._attr_unique_id = f"{entry.entry_id}_{climate_type}"
         self._attr_min_temp = min_temp
         self._attr_max_temp = max_temp

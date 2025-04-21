@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Lambda WP Setup",
+        "description": "Configure your Lambda WP device.",
+        "data": {
+          "name": "Name",
+          "host": "Host",
+          "port": "Port",
+          "slave_id": "Slave ID",
+          "firmware_version": "Firmware Version",
+          "debug_mode": "Debug Mode"
+        }
+      }
+    },
+    "error": {
+      "unknown": "Unknown error occurred.",
+      "cannot_connect": "Could not connect to the device."
+    },
+    "options": {
+      "step": {
+        "init": {
+          "title": "Lambda WP Options",
+          "data": {
+            "hot_water_min_temp": "Hot Water Min Temperature",
+            "hot_water_max_temp": "Hot Water Max Temperature",
+            "heating_circuit_min_temp": "Heating Circuit Min Temperature",
+            "heating_circuit_max_temp": "Heating Circuit Max Temperature",
+            "update_interval": "Update Interval (seconds)",
+            "firmware_version": "Firmware Versions"
+          }
+        }
+      }
+    }
+  },
+  "climate": {
+    "hot_water": "Hot Water",
+    "heating_circuit": "Heating Circuit",
+    "current_temperature": "Current Temperature",
+    "target_temperature": "Target Temperature",
+    "min_temp": "Minimum Temperature",
+    "max_temp": "Maximum Temperature",
+    "set_temperature": "Set Temperature",
+    "hvac_mode_heat": "Heat",
+    "hvac_modes": "Modes",
+    "error_set_temp_failed": "Failed to set target temperature."
+  }
+}
