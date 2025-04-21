@@ -18,6 +18,7 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_SLAVE_ID,
     DEFAULT_HOST,
+    DEFAULT_FIRMWARE,
     DEBUG,
     LOG_LEVELS,
     SENSOR_TYPES,
@@ -75,7 +76,7 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional("debug_mode", default=False): bool,
                     vol.Optional(
                         "firmware_version",
-                        default="V0.0.4-3K",
+                        default=DEFAULT_FIRMWARE,
                     ): vol.In(firmware_options),
                 }
             ),
