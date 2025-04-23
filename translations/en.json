@@ -10,7 +10,8 @@
           "port": "Port",
           "slave_id": "Slave ID",
           "firmware_version": "Firmware Version",
-          "debug_mode": "Debug Mode"
+          "debug_mode": "Debug Mode",
+          "num_hps": "Number of heat pumps"
         }
       }
     },

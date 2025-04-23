@@ -53,11 +53,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("Unloading Lambda integration")
-    if unload_ok := await hass.config_entries.async_unload_platforms(entry, ["sensor", "climate"]):
-        if entry.entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-            if coordinator.client:
-                await hass.async_add_executor_job(coordinator.client.close)
+    try:
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, ["sensor", "climate"])
+    except ValueError as ex:
+        _LOGGER.debug("Platform was not loaded or already unloaded: %s", ex)
+        unload_ok = True
+    if entry.entry_id in hass.data[DOMAIN]:
+        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+        if coordinator.client:
+            await hass.async_add_executor_job(coordinator.client.close)
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
 

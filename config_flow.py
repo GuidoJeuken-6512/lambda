@@ -75,6 +75,11 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
                     vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                     vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): int,
+                    vol.Required(
+                        "num_hps",
+                        default=1,
+                        description={"suggested_value": 1},
+                    ): int,
                     vol.Optional("debug_mode", default=False): bool,
                     vol.Optional(
                         "firmware_version",
@@ -83,7 +88,7 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
-            description_placeholders=None,
+            description_placeholders=None
         )
 
     @staticmethod
@@ -104,16 +109,22 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                # Wenn die Firmware-Version geändert wurde, aktualisiere die Hauptdaten
-                if "firmware_version" in user_input:
-                    new_data = dict(self.config_entry.data)
+                # Wenn die Firmware-Version oder num_hps geändert wurde, aktualisiere die Hauptdaten
+                update_data = False
+                new_data = dict(self.config_entry.data)
+                if "firmware_version" in user_input and user_input["firmware_version"] != self.config_entry.data.get("firmware_version"):
                     new_data["firmware_version"] = user_input["firmware_version"]
+                    update_data = True
+                if "num_hps" in user_input and user_input["num_hps"] != self.config_entry.data.get("num_hps", 1):
+                    new_data["num_hps"] = user_input["num_hps"]
+                    update_data = True
+                if update_data:
                     self.hass.config_entries.async_update_entry(
                         self.config_entry,
                         data=new_data
                     )
-                    # Entferne die Firmware-Version aus den Options
-                    user_input.pop("firmware_version")
+                # Entferne die Felder aus den Options, die in data gespeichert werden
+                user_input = {k: v for k, v in user_input.items() if k not in ("firmware_version", "num_hps")}
                 return self.async_create_entry(title="", data=user_input)
             except CannotConnect:
                 errors["base"] = "cannot_connect"
@@ -123,6 +134,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
 
         options = self.config_entry.options
         firmware_options = list(FIRMWARE_VERSION.keys())
+        current_num_hps = self.config_entry.data.get("num_hps", 1)
 
         schema = {
             vol.Optional(
@@ -149,6 +161,10 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
                 "firmware_version",
                 default=self.config_entry.data.get("firmware_version", "V0.0.4-3K"),
             ): vol.In(firmware_options),
+            vol.Optional(
+                "num_hps",
+                default=current_num_hps,
+            ): int,
         }
 
         return self.async_show_form(
