@@ -59,6 +59,8 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=user_input[CONF_NAME], data=user_input
                 )
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
@@ -81,6 +83,7 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
+            description_placeholders=None,
         )
 
     @staticmethod
@@ -98,25 +101,30 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            # Wenn die Firmware-Version geändert wurde, aktualisiere die Hauptdaten
-            if "firmware_version" in user_input:
-                new_data = dict(self.config_entry.data)
-                new_data["firmware_version"] = user_input["firmware_version"]
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data=new_data
-                )
-                # Entferne die Firmware-Version aus den Options
-                user_input.pop("firmware_version")
-            
-            return self.async_create_entry(title="", data=user_input)
+            try:
+                # Wenn die Firmware-Version geändert wurde, aktualisiere die Hauptdaten
+                if "firmware_version" in user_input:
+                    new_data = dict(self.config_entry.data)
+                    new_data["firmware_version"] = user_input["firmware_version"]
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry,
+                        data=new_data
+                    )
+                    # Entferne die Firmware-Version aus den Options
+                    user_input.pop("firmware_version")
+                return self.async_create_entry(title="", data=user_input)
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Unexpected exception in options flow")
+                errors["base"] = "unknown"
 
         options = self.config_entry.options
         firmware_options = list(FIRMWARE_VERSION.keys())
 
         schema = {
-            # Temperaturbereiche
             vol.Optional(
                 "hot_water_min_temp",
                 default=options.get("hot_water_min_temp", 40),
@@ -133,14 +141,10 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
                 "heating_circuit_max_temp",
                 default=options.get("heating_circuit_max_temp", 35),
             ): vol.All(vol.Coerce(float), vol.Range(min=5, max=35)),
-
-            # Update-Intervall
             vol.Optional(
                 "update_interval",
                 default=options.get("update_interval", 30),
             ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
-
-            # Firmware-Version
             vol.Optional(
                 "firmware_version",
                 default=self.config_entry.data.get("firmware_version", "V0.0.4-3K"),
@@ -150,6 +154,8 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(schema),
+            errors=errors,
+            description_placeholders=None,
         )
 
     async def _test_connection(self, user_input: dict[str, Any]) -> None:

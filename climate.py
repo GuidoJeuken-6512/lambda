@@ -130,10 +130,13 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
         self._climate_type = climate_type
         self._current_temp_sensor = current_temp_sensor
         self._target_temp_sensor = target_temp_sensor
-        
-        # Setze den Übersetzungsschlüssel für den Namen
-        self._attr_translation_key = translation_key
-        # self._attr_name nicht setzen, damit Home Assistant die Übersetzung verwendet
+        # Entferne Übersetzungsschlüssel und setze statischen Namen
+        if climate_type == "hot_water":
+            self._attr_name = "Warmwasser"
+        elif climate_type == "heating_circuit":
+            self._attr_name = "Heizkreis"
+        else:
+            self._attr_name = climate_type.capitalize()
         self._attr_unique_id = f"{entry.entry_id}_{climate_type}"
         self._attr_min_temp = min_temp
         self._attr_max_temp = max_temp
