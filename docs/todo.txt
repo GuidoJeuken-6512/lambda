@@ -1,54 +1,7 @@
 ## Übersetzungen funktioniern nicht sauber.
 
-# TODO: Dynamische Handhabung mehrerer Wärmepumpen (HP)
+## Sensoren für solar und buffer beides dynamisch analog zu HP / HC / BOIL 
 
-## Lösungsansatz
-
-1.  **Konfiguration der HP-Anzahl:**
-    *   Neues Feld `num_hps` (Integer, 1-4) im Initialen Config Flow (`LambdaConfigFlow`) hinzufügen.
-    *   Neues Feld `num_hps` im Options Flow (`LambdaOptionsFlow`) hinzufügen.
-    *   `num_hps` in `config_entry.data` speichern (nicht nur Options).
-    *   Sicherstellen, dass Änderung von `num_hps` im Options Flow die `config_entry.data` aktualisiert (löst Reload aus).
-
-2.  **Anpassung der Sensor-Definitionen (`const.py`):**
-    *   `SENSOR_TYPES` nur noch für globale Sensoren (ambient, ggf. boiler/hc falls nicht HP-spezifisch).
-    *   Neue Konstante `HP_BASE_ADDRESS = {1: 1000, 2: 1100, ...}` definieren.
-    *   Neue Konstante `HP_SENSOR_TEMPLATES` definieren. Struktur:
-        ```python
-        HP_SENSOR_TEMPLATES = {
-            "state": { # Schlüssel = Sensortyp (ohne hpX_ Präfix)
-                "relative_address": 2, # Offset von HP_BASE_ADDRESS
-                "name_template": "Heat Pump {index} State", # Für dynamischen Namen
-                "unit": None, "scale": 1, "precision": 0, "data_type": "uint16", "firmware_version": 1,
-            },
-            # ... weitere Templates ...
-        }
-        ```
-
-3.  **Dynamische Generierung der Sensorliste:**
-    *   Neue Funktion `generate_effective_sensors(num_hps)` (in `const.py` oder `__init__.py`) erstellen.
-    *   Diese Funktion nimmt `num_hps` und gibt ein *vollständiges* Dictionary aller *effektiv* zu verwendenden Sensoren zurück (globale + generierte HP-Sensoren).
-    *   Generierung der HP-Sensoren:
-        *   Für `i` von 1 bis `num_hps`:
-            *   Iteriere durch `HP_SENSOR_TEMPLATES`.
-            *   Erstelle finalen Key: `f"hp{i}_{template_key}"`.
-            *   Berechne finale Adresse: `HP_BASE_ADDRESS[i] + template['relative_address']`.
-            *   Erstelle finalen Namen: `template['name_template'].format(index=i)`.
-            *   Füge kompletten Sensor zum Ergebnis-Dictionary hinzu.
-
-4.  **Anpassung des Coordinators (`__init__.py` - `LambdaDataUpdateCoordinator`):**
-    *   `_async_update_data`: Lese `num_hps = self.config_entry.data.get('num_hps', 1)`.
-    *   Rufe `sensors_to_read = generate_effective_sensors(num_hps)` auf.
-    *   Iteriere durch `sensors_to_read.items()` statt `SENSOR_TYPES.items()`, um Modbus-Register zu lesen.
-
-5.  **Anpassung des Sensor-Setups (`sensor.py` - `async_setup_entry`):**
-    *   Lese `num_hps = entry.data.get('num_hps', 1)`.
-    *   Rufe `effective_sensors = generate_effective_sensors(num_hps)` auf.
-    *   Iteriere durch `effective_sensors.items()` statt `SENSOR_TYPES.items()`.
-    *   Wende Firmware-Filter wie bisher an.
-    *   Erstelle `LambdaSensor`-Entitäten mit den Daten aus `effective_sensors`.
-
-6.  **Anpassung des Climate-Setups (`climate.py` - `async_setup_entry`):**
-    *   Prüfen: Sind Klima-Entitäten HP-spezifisch oder global (z.B. boil1, hc1)?
-    *   Wenn global: Keine großen Änderungen nötig, außer dass `is_sensor_compatible` ggf. auf dynamische Sensor-IDs zugreifen muss, falls Klima doch von HP-Sensoren abhängt.
-    *   Wenn HP-spezifisch (eine Klima-Entität pro HP): Ähnliche Logik wie in `sensor.py` implementieren (Loop über `num_hps`, dynamische Sensor-Namen verwenden).
+## die steuerung über das Raumthermostat im config flow abfragen ja/nein und wenn ja 
+    die entität des thermometers abfagen / eine automatisierung erstellen, die den wert an das entsprechenden Modbus register sendet.
+    
