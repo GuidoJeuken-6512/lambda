@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION
+from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, BOIL_SENSOR_TEMPLATES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,13 +42,30 @@ async def async_setup_entry(
     
     # Funktion zur Überprüfung der Sensor-Firmware-Kompatibilität
     def is_sensor_compatible(sensor_id: str) -> bool:
+        # Prüfe dynamische Boiler-Sensoren
+        if sensor_id.startswith("boil"):
+            parts = sensor_id.split("_", 1)
+            if len(parts) == 2 and parts[1] in BOIL_SENSOR_TEMPLATES:
+                template = BOIL_SENSOR_TEMPLATES[parts[1]]
+                sensor_fw = template.get("firmware_version", 1)
+                is_compatible = sensor_fw <= fw_version
+                _LOGGER.debug(
+                    "Climate Boiler Sensor Compatibility Check - Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s",
+                    sensor_id,
+                    sensor_fw,
+                    fw_version,
+                    is_compatible
+                )
+                return is_compatible
+            _LOGGER.warning("Boiler sensor template for '%s' not found.", sensor_id)
+            return False
+        # Prüfe statische Sensoren
         sensor_config = SENSOR_TYPES.get(sensor_id)
         if not sensor_config:
             _LOGGER.warning("Sensor '%s' not found in SENSOR_TYPES.", sensor_id)
             return False
         sensor_fw = sensor_config.get("firmware_version", 1)
         is_compatible = sensor_fw <= fw_version
-        
         _LOGGER.debug(
             "Climate Sensor Compatibility Check - Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s",
             sensor_id,
@@ -56,29 +73,29 @@ async def async_setup_entry(
             fw_version,
             is_compatible
         )
-        
         return is_compatible
         
     entities = []
 
-    # Hot Water Entity
-    hw_current_temp_sensor = options.get("hot_water_current_temp_sensor", "boil1_actual_high_temperature")
-    hw_target_temp_sensor = options.get("hot_water_target_temp_sensor", "boil1_target_high_temperature")
-
-    if is_sensor_compatible(hw_current_temp_sensor) and is_sensor_compatible(hw_target_temp_sensor):
-        entities.append(
-            LambdaClimateEntity(
-                coordinator=coordinator,
-                entry=entry,
-                climate_type="hot_water",
-                translation_key="hot_water",
-                current_temp_sensor=hw_current_temp_sensor,
-                target_temp_sensor=hw_target_temp_sensor,
-                min_temp=options.get("hot_water_min_temp", 40),
-                max_temp=options.get("hot_water_max_temp", 60),
-                temp_step=1
+    # Dynamische Hot Water Entities für alle Boiler
+    num_boil = entry.data.get("num_boil", 1)
+    for boil_idx in range(1, num_boil + 1):
+        hw_current_temp_sensor = f"boil{boil_idx}_actual_high_temperature"
+        hw_target_temp_sensor = f"boil{boil_idx}_target_high_temperature"
+        if is_sensor_compatible(hw_current_temp_sensor) and is_sensor_compatible(hw_target_temp_sensor):
+            entities.append(
+                LambdaClimateEntity(
+                    coordinator=coordinator,
+                    entry=entry,
+                    climate_type=f"hot_water_{boil_idx}",
+                    translation_key="hot_water",
+                    current_temp_sensor=hw_current_temp_sensor,
+                    target_temp_sensor=hw_target_temp_sensor,
+                    min_temp=options.get("hot_water_min_temp", 40),
+                    max_temp=options.get("hot_water_max_temp", 60),
+                    temp_step=1
+                )
             )
-        )
 
     # Heating Circuit Entity
     hc_current_temp_sensor = options.get("heating_circuit_current_temp_sensor", "hc1_room_device_temperature")
@@ -162,15 +179,22 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
             return
 
         try:
-            # Hole die Sensor-Definition
-            sensor_info = SENSOR_TYPES.get(self._target_temp_sensor)
+            # Dynamische Boiler-Sensoren unterstützen
+            sensor_info = None
+            if self._target_temp_sensor.startswith("boil"):
+                parts = self._target_temp_sensor.split("_", 1)
+                if len(parts) == 2 and parts[1] in BOIL_SENSOR_TEMPLATES:
+                    sensor_info = BOIL_SENSOR_TEMPLATES[parts[1]].copy()
+                    idx = int(self._target_temp_sensor[4])
+                    from .const import BOIL_BASE_ADDRESS
+                    sensor_info["address"] = BOIL_BASE_ADDRESS[idx] + sensor_info["relative_address"]
+            else:
+                sensor_info = SENSOR_TYPES.get(self._target_temp_sensor)
             if not sensor_info:
                 _LOGGER.error("No sensor definition found for %s", self._target_temp_sensor)
                 return
-            
             # Berechne den Rohwert für das Register mit der korrekten Skalierung
             raw_value = int(temperature / sensor_info["scale"])
-            
             # Schreibe den Wert in das Modbus-Register
             result = await self.hass.async_add_executor_job(
                 self.coordinator.client.write_registers,
@@ -178,15 +202,12 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
                 [raw_value],
                 self._entry.data.get("slave_id", 1)
             )
-            
             if result.isError():
                 _LOGGER.error("Failed to write target temperature: %s", result)
                 return
-                
             # Aktualisiere den Coordinator-Cache
             self.coordinator.data[self._target_temp_sensor] = temperature
             self.async_write_ha_state()
             _LOGGER.debug("Successfully set target temperature to %s°C", temperature)
-            
         except Exception as ex:
             _LOGGER.error("Error setting target temperature: %s", ex)

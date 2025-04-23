@@ -5,7 +5,7 @@ import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from .const import SENSOR_TYPES, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS
+from .const import SENSOR_TYPES, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS, BOIL_SENSOR_TEMPLATES, BOIL_BASE_ADDRESS, FIRMWARE_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=30)
@@ -111,6 +111,48 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
                         data[sensor_id] = scaled_value
                     except Exception as ex:
                         _LOGGER.error("Exception reading HP sensor %s at address %s: %s", sensor_id, address, ex)
+            _LOGGER.debug("HP sensor block finished, entering Boiler sensor block...")
+            # 3. Dynamische Boiler-Sensoren abfragen
+            num_boil = self.hass.config_entries.async_get_entry(self.config_entry_id).data.get("num_boil", 1)
+            configured_fw = self.hass.config_entries.async_get_entry(self.config_entry_id).data.get("firmware_version", "V0.0.4-3K")
+            fw_version = int(FIRMWARE_VERSION.get(configured_fw, "1"))
+            for boil_idx in range(1, num_boil + 1):
+                _LOGGER.debug("Reading sensors for Boiler %s", boil_idx)
+                for template_key, template in BOIL_SENSOR_TEMPLATES.items():
+                    template_fw = template.get("firmware_version", 1)
+                    if template_fw > fw_version:
+                        _LOGGER.debug("Skipping Boiler sensor %s for Boiler %d due to firmware version (required: %s, current: %s)", template_key, boil_idx, template_fw, fw_version)
+                        continue
+                    sensor_id = f"boil{boil_idx}_{template_key}"
+                    address = BOIL_BASE_ADDRESS.get(boil_idx)
+                    if address is None:
+                        _LOGGER.warning("No base address for Boiler %s", boil_idx)
+                        continue
+                    address += template["relative_address"]
+                    count = 2 if template["data_type"] == "int32" else 1
+                    try:
+                        _LOGGER.debug("Attempting to read Modbus register for boiler sensor %s at address %d with count %d", sensor_id, address, count)
+                        result = await self.hass.async_add_executor_job(
+                            self.client.read_holding_registers,
+                            address,
+                            count,
+                            self.slave_id
+                        )
+                        if result.isError():
+                            _LOGGER.warning(f"Modbus error for {sensor_id}")
+                            continue
+                        if template["data_type"] == "int32":
+                            raw_value = (result.registers[0] << 16) | result.registers[1]
+                        else:
+                            raw_value = result.registers[0]
+                        scaled_value = raw_value * template["scale"]
+                        _LOGGER.debug(
+                            "Successfully read %s: %s (raw: %s)",
+                            sensor_id, scaled_value, raw_value
+                        )
+                        data[sensor_id] = scaled_value
+                    except Exception as ex:
+                        _LOGGER.error("Exception reading Boiler sensor %s at address %s: %s", sensor_id, address, ex)
             _LOGGER.debug("Final data structure: %s", data)
             return data
         except ModbusException as ex:
@@ -123,4 +165,4 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Exception in _async_update_data: %s", ex)
             raise
         finally:
-            _LOGGER.debug("End of _async_update_data reached (after HP sensor block)")
+            _LOGGER.debug("End of _async_update_data reached (after Boiler sensor block)")

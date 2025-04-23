@@ -32,6 +32,9 @@ LOG_LEVELS = {
 # Basisadressen für Heatpumps
 HP_BASE_ADDRESS = {1: 1000, 2: 1100, 3: 1200, 4: 1300, 5: 1400}
 
+# Basisadressen für Boiler
+BOIL_BASE_ADDRESS = {1: 2000, 2: 2100, 3: 2200, 4: 2300, 5: 2400}
+
 # Templates für HP-Sensoren (ohne hp1_-Präfix)
 HP_SENSOR_TEMPLATES = {
     "error_state": {
@@ -225,6 +228,55 @@ HP_SENSOR_TEMPLATES = {
     },
 }
 
+# Templates für Boiler-Sensoren (ohne boil1_-Präfix)
+BOIL_SENSOR_TEMPLATES = {
+    "error_number": {
+        "relative_address": 0,
+        "name": "Boiler Error Number",
+        "unit": None,
+        "scale": 1,
+        "precision": 0,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "operating_state": {
+        "relative_address": 1,
+        "name": "Boiler Operating State",
+        "unit": None,
+        "scale": 1,
+        "precision": 0,
+        "data_type": "uint16",
+        "firmware_version": 1,
+    },
+    "actual_high_temperature": {
+        "relative_address": 2,
+        "name": "Boiler Actual High Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "actual_low_temperature": {
+        "relative_address": 3,
+        "name": "Boiler Actual Low Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "target_high_temperature": {
+        "relative_address": 50,
+        "name": "Boiler Target High Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+}
+
 SENSOR_TYPES = {
     # General Ambient
     "aaaadummy": {
@@ -280,48 +332,6 @@ SENSOR_TYPES = {
         "precision": 1,
         "data_type": "int16",
         "firmware_version": 1,
-    },
-    # Boiler
-    "boil1_error_number": {
-        "address": 2000,
-        "name": "Boiler Error Number",
-        "unit": None,
-        "scale": 1,
-        "precision": 0,
-        "data_type": "int16",
-        "firmware_version": 1,
-    },
-    "boil1_operating_state": {
-        "address": 2001,
-        "name": "Boiler Operating State",
-        "unit": None,
-        "scale": 1,
-        "precision": 0,
-        "data_type": "uint16",
-    },
-    "boil1_actual_high_temperature": {
-        "address": 2002,
-        "name": "Boiler Actual High Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
-    },
-    "boil1_actual_low_temperature": {
-        "address": 2003,
-        "name": "Boiler Actual Low Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
-    },
-    "boil1_target_high_temperature": {
-        "address": 2050,
-        "name": "Boiler Target High Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
     },
     # Heating Circuit
     "hc1_error_number": {

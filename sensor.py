@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS
+from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS, BOIL_SENSOR_TEMPLATES, BOIL_BASE_ADDRESS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,6 +101,41 @@ async def async_setup_entry(
                 )
             )
     _LOGGER.debug("Total number of dynamic HP sensors created: %d", len(entities) - len(SENSOR_TYPES))
+    
+    # Dynamische Generierung der Boiler-Sensoren
+    num_boil = entry.data.get("num_boil", 1)
+    _LOGGER.debug("Starting dynamic sensor generation for %d boilers", num_boil)
+    for boil_idx in range(1, num_boil + 1):
+        for template_key, template in BOIL_SENSOR_TEMPLATES.items():
+            template_fw = template.get("firmware_version", 1)
+            is_compatible = template_fw <= fw_version
+            _LOGGER.debug(
+                "Dynamic Boiler Sensor Compatibility Check - Boiler: %d, Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s, Raw Template: %s",
+                boil_idx,
+                template_key,
+                template_fw,
+                fw_version,
+                is_compatible,
+                template
+            )
+            if not is_compatible:
+                _LOGGER.debug("Skipping Boiler sensor %s for Boiler %d due to firmware version (required: %s, current: %s)", template_key, boil_idx, template_fw, fw_version)
+                continue
+            sensor_id = f"boil{boil_idx}_{template_key}"
+            address = BOIL_BASE_ADDRESS[boil_idx] + template["relative_address"]
+            sensor_config = template.copy()
+            sensor_config["address"] = address
+            sensor_config["name"] = f"Boiler {boil_idx} {template['name'].replace('Boiler ', '')}"
+            _LOGGER.debug("Creating boiler sensor: %s at address: %d", sensor_id, address)
+            entities.append(
+                LambdaSensor(
+                    coordinator=coordinator,
+                    entry=entry,
+                    sensor_id=sensor_id,
+                    sensor_config=sensor_config,
+                )
+            )
+    _LOGGER.debug("Total number of dynamic Boiler sensors created: %d", len(entities) - len(SENSOR_TYPES))
     
     # Tabellarische Debug-Ausgabe aller Attribute
     if entities:

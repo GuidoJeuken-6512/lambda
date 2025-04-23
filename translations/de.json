@@ -11,7 +11,8 @@
           "slave_id": "Slave-ID",
           "firmware_version": "Firmware-Version",
           "debug_mode": "Debug-Modus",
-          "num_hps": "Anzahl der Wärmepumpen"
+          "num_hps": "Anzahl der Wärmepumpen",
+          "num_boil": "Anzahl der Warmwasser Speicher"
         }
       }
     },
