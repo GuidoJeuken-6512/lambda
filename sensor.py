@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS, BOIL_SENSOR_TEMPLATES, BOIL_BASE_ADDRESS
+from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS, BOIL_SENSOR_TEMPLATES, BOIL_BASE_ADDRESS, HC_SENSOR_TEMPLATES, HC_BASE_ADDRESS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -137,18 +137,41 @@ async def async_setup_entry(
             )
     _LOGGER.debug("Total number of dynamic Boiler sensors created: %d", len(entities) - len(SENSOR_TYPES))
     
-    # Tabellarische Debug-Ausgabe aller Attribute
-    if entities:
-        all_keys = set()
-        for e in entities:
-            all_keys.update(vars(e).keys())
-        all_keys = sorted(all_keys)
-        header = " | ".join(all_keys)
-        table = [header]
-        for e in entities:
-            row = [str(vars(e).get(k, "")) for k in all_keys]
-            table.append(" | ".join(row))
-        _LOGGER.debug("entities table (all attributes):\n%s", "\n".join(table))
+    # Dynamische Generierung der HC-Sensoren
+    num_hc = entry.data.get("num_hc", 1)
+    _LOGGER.debug("Starting dynamic sensor generation for %d heating circuits", num_hc)
+    for hc_idx in range(1, num_hc + 1):
+        for template_key, template in HC_SENSOR_TEMPLATES.items():
+            template_fw = template.get("firmware_version", 1)
+            is_compatible = template_fw <= fw_version
+            _LOGGER.debug(
+                "Dynamic HC Sensor Compatibility Check - HC: %d, Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s, Raw Template: %s",
+                hc_idx,
+                template_key,
+                template_fw,
+                fw_version,
+                is_compatible,
+                template
+            )
+            if not is_compatible:
+                _LOGGER.debug("Skipping HC sensor %s for HC %d due to firmware version (required: %s, current: %s)", template_key, hc_idx, template_fw, fw_version)
+                continue
+            sensor_id = f"hc{hc_idx}_{template_key}"
+            address = HC_BASE_ADDRESS[hc_idx] + template["relative_address"]
+            sensor_config = template.copy()
+            sensor_config["address"] = address
+            sensor_config["name"] = f"Heating Circuit {hc_idx} {template['name'].replace('Heating Circuit ', '')}"
+            _LOGGER.debug("Creating sensor: %s at address: %d", sensor_id, address)
+            entities.append(
+                LambdaSensor(
+                    coordinator=coordinator,
+                    entry=entry,
+                    sensor_id=sensor_id,
+                    sensor_config=sensor_config,
+                )
+            )
+    _LOGGER.debug("Total number of dynamic HC sensors created: %d", len(entities) - len(SENSOR_TYPES) - num_hps * len(HP_SENSOR_TEMPLATES) - num_boil * len(BOIL_SENSOR_TEMPLATES))
+    
     async_add_entities(entities)
 
 class LambdaSensor(CoordinatorEntity, SensorEntity):
