@@ -3,31 +3,44 @@
 ## Initialisierung der Dynamischen Sensoren
 
 1. **`async_setup_entry` in `__init__.py`**:
-   - Diese Funktion wird aufgerufen, wenn die Integration in Home Assistant eingerichtet wird.
-   - Sie initialisiert den `LambdaDataUpdateCoordinator`, der für das Abrufen der Daten verantwortlich ist.
-   - Die Funktion ruft `async_refresh` auf, um die Daten sofort zu aktualisieren.
+   - Wird beim Einrichten der Integration in Home Assistant aufgerufen.
+   - Initialisiert den `LambdaDataUpdateCoordinator`, der für das zyklische Abrufen der Modbus-Daten verantwortlich ist.
+   - Ruft `async_refresh` auf, um die Daten sofort zu aktualisieren.
 
 2. **`LambdaDataUpdateCoordinator` in `coordinator.py`**:
-   - Diese Klasse erbt von `DataUpdateCoordinator` und verwaltet das Abrufen der Daten von den Modbus-Registrierungen.
-   - Die Methode `_async_update_data` wird verwendet, um die Daten von den Sensoren abzurufen.
+   - Erbt von `DataUpdateCoordinator` und verwaltet das Abrufen der Daten von den Modbus-Registrierungen.
+   - Die Methode `_async_update_data` liest für jede konfigurierte Instanz (Wärmepumpe, Boiler, Heizkreis) und jedes Template die Modbus-Register aus.
+   - Die Anzahl der Instanzen wird über die Konfiguration (`num_hps`, `num_boil`, `num_hc`) bestimmt.
+   - Die Firmware-Kompatibilität wird geprüft, nicht unterstützte Sensoren werden übersprungen.
+   - Die Ergebnisse werden skaliert und in einem Datenwörterbuch gespeichert, das von den Entitäten verwendet wird.
 
 3. **`async_setup_entry` in `sensor.py`**:
-   - Diese Funktion wird aufgerufen, um die Sensor-Entitäten in Home Assistant zu erstellen.
-   - Sie erstellt Instanzen der `LambdaSensor`-Klasse für jeden dynamischen Sensor basierend auf der Konfiguration.
+   - Wird aufgerufen, um die Sensor-Entitäten in Home Assistant zu erstellen.
+   - Für jede konfigurierte Instanz (HP, Boiler, HC) und jedes Template werden dynamisch Sensor-Entitäten erzeugt, sofern sie mit der Firmware kompatibel sind.
+   - Es werden keine Entitäten erzeugt, wenn num_boil oder num_hc = 0 ist.
 
 4. **`LambdaSensor` in `sensor.py`**:
-   - Diese Klasse repräsentiert einen einzelnen Sensor in Home Assistant.
-   - Sie erbt von `CoordinatorEntity` und `SensorEntity`, um die Sensor-Daten in der Benutzeroberfläche anzuzeigen.
+   - Repräsentiert einen einzelnen Sensor in Home Assistant.
+   - Erbt von `CoordinatorEntity` und `SensorEntity` und zeigt die Sensordaten in der Oberfläche an.
+   - Holt die Werte aus dem Koordinator-Datenwörterbuch.
+
+5. **`async_setup_entry` in `climate.py`**:
+   - Erzeugt für jede Boiler- und HC-Instanz eine eigene Climate-Entity, die auf die passenden dynamischen Sensoren verweist.
+   - Climate-Entitäten werden nur erzeugt, wenn num_boil bzw. num_hc > 0 ist und die Sensoren mit der Firmware kompatibel sind.
+
+6. **`LambdaClimateEntity` in `climate.py`**:
+   - Repräsentiert eine Climate-Entität (Warmwasser, Heizkreis) in Home Assistant.
+   - Liest Ist- und Sollwert aus den dynamischen Sensoren.
+   - Ermöglicht das Setzen des Sollwerts über Modbus.
 
 ## Update der Dynamischen Sensoren
 
 1. **`_async_update_data` in `LambdaDataUpdateCoordinator`**:
-   - Diese Methode wird regelmäßig aufgerufen, um die Daten von den Modbus-Registrierungen abzurufen.
-   - Sie liest die Register für die dynamischen Sensoren basierend auf den in `HP_SENSOR_TEMPLATES` definierten Adressen.
+   - Wird regelmäßig aufgerufen, um die Daten von den Modbus-Registrierungen abzurufen.
+   - Liest für jede konfigurierte Instanz (HP, Boiler, HC) und jedes Template die Modbus-Register aus.
+   - Prüft die Firmware-Kompatibilität und skaliert die Werte.
+   - Speichert die Ergebnisse im Koordinator-Datenwörterbuch.
 
-2. **Modbus-Abfragen**:
-   - Innerhalb von `_async_update_data` werden die Modbus-Register für jeden dynamischen Sensor abgefragt.
-   - Die Ergebnisse werden skaliert und in einem Datenwörterbuch gespeichert, das von den Sensor-Entitäten verwendet wird.
-
-3. **Sensor-Entitäten**:
-   - Die `LambdaSensor`-Entitäten verwenden die aktualisierten Daten aus dem Koordinator, um ihre Zustände in der Home Assistant-Benutzeroberfläche zu aktualisieren. 
+2. **Sensor- und Climate-Entitäten**:
+   - Verwenden die aktualisierten Daten aus dem Koordinator, um ihre Zustände in der Home Assistant-Benutzeroberfläche anzuzeigen.
+   - Climate-Entitäten können Sollwerte über Modbus setzen, sofern unterstützt.
