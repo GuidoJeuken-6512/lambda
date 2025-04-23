@@ -155,7 +155,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
             ): vol.All(vol.Coerce(float), vol.Range(min=5, max=35)),
             vol.Optional(
                 "update_interval",
-                default=options.get("update_interval", 30),
+                default=options.get("update_interval", 10),
             ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
             vol.Optional(
                 "firmware_version",
