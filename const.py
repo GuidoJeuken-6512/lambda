@@ -35,6 +35,9 @@ HP_BASE_ADDRESS = {1: 1000, 2: 1100, 3: 1200, 4: 1300, 5: 1400}
 # Basisadressen für Boiler
 BOIL_BASE_ADDRESS = {1: 2000, 2: 2100, 3: 2200, 4: 2300, 5: 2400}
 
+# Basisadressen für Heizkreise
+HC_BASE_ADDRESS = {1: 5000, 2: 5100, 3: 5200, 4: 5300, 5: 5400}
+
 # Templates für HP-Sensoren (ohne hp1_-Präfix)
 HP_SENSOR_TEMPLATES = {
     "error_state": {
@@ -277,6 +280,100 @@ BOIL_SENSOR_TEMPLATES = {
     },
 }
 
+# Templates für HC-Sensoren (ohne hc1_-Präfix)
+HC_SENSOR_TEMPLATES = {
+    "error_number": {
+        "relative_address": 0,
+        "name": "Heating Circuit Error Number",
+        "unit": None,
+        "scale": 1,
+        "precision": 0,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "operating_state": {
+        "relative_address": 1,
+        "name": "Heating Circuit Operating State",
+        "unit": None,
+        "scale": 1,
+        "precision": 0,
+        "data_type": "uint16",
+        "firmware_version": 1,
+    },
+    "flow_line_temperature": {
+        "relative_address": 2,
+        "name": "Flow Line Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "return_line_temperature": {
+        "relative_address": 3,
+        "name": "Return Line Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "room_device_temperature": {
+        "relative_address": 4,
+        "name": "Room Device Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "set_flow_line_temperature": {
+        "relative_address": 5,
+        "name": "Set Flow Line Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "operating_mode": {
+        "relative_address": 6,
+        "name": "Operating Mode",
+        "unit": None,
+        "scale": 1,
+        "precision": 0,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "set_flow_line_offset_temperature": {
+        "relative_address": 50,
+        "name": "Set Flow Line Offset Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "target_room_temperature": {
+        "relative_address": 51,
+        "name": "Target Room Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+    "set_cooling_mode_room_temperature": {
+        "relative_address": 52,
+        "name": "Set Cooling Mode Room Temperature",
+        "unit": "°C",
+        "scale": 0.1,
+        "precision": 1,
+        "data_type": "int16",
+        "firmware_version": 1,
+    },
+}
+
 SENSOR_TYPES = {
     # General Ambient
     "aaaadummy": {
@@ -332,86 +429,5 @@ SENSOR_TYPES = {
         "precision": 1,
         "data_type": "int16",
         "firmware_version": 1,
-    },
-    # Heating Circuit
-    "hc1_error_number": {
-        "address": 5000,
-        "name": "Heating Circuit Error Number",
-        "unit": None,
-        "scale": 1,
-        "precision": 0,
-        "data_type": "int16",
-    },
-    "hc1_operating_state": {
-        "address": 5001,
-        "name": "Heating Circuit Operating State",
-        "unit": None,
-        "scale": 1,
-        "precision": 0,
-        "data_type": "uint16",
-    },
-    "hc1_flow_line_temperature": {
-        "address": 5002,
-        "name": "Flow Line Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
-    },
-    "hc1_return_line_temperature": {
-        "address": 5003,
-        "name": "Return Line Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
-    },
-    "hc1_room_device_temperature": {
-        "address": 5004,
-        "name": "Room Device Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
-    },
-    "hc1_set_flow_line_temperature": {
-        "address": 5005,
-        "name": "Set Flow Line Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
-    },
-    "hc1_operating_mode": {
-        "address": 5006,
-        "name": "Operating Mode",
-        "unit": None,
-        "scale": 1,
-        "precision": 0,
-        "data_type": "int16",
-    },
-    "hc1_set_flow_line_offset_temperature": {
-        "address": 5050,
-        "name": "Set Flow Line Offset Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
-    },
-    "hc1_target_room_temperature": {
-        "address": 5051,
-        "name": "Target Room Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
-    },
-    "hc1_set_cooling_mode_room_temperature": {
-        "address": 5052,
-        "name": "Set Cooling Mode Room Temperature",
-        "unit": "°C",
-        "scale": 0.1,
-        "precision": 1,
-        "data_type": "int16",
     },
 }

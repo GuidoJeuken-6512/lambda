@@ -153,6 +153,47 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
                         data[sensor_id] = scaled_value
                     except Exception as ex:
                         _LOGGER.error("Exception reading Boiler sensor %s at address %s: %s", sensor_id, address, ex)
+            _LOGGER.debug("Boiler sensor block finished, entering HC sensor block...")
+            # 4. Dynamische HC-Sensoren abfragen
+            num_hc = self.hass.config_entries.async_get_entry(self.config_entry_id).data.get("num_hc", 1)
+            from .const import HC_SENSOR_TEMPLATES, HC_BASE_ADDRESS
+            for hc_idx in range(1, num_hc + 1):
+                _LOGGER.debug("Reading sensors for HC %s", hc_idx)
+                for template_key, template in HC_SENSOR_TEMPLATES.items():
+                    template_fw = template.get("firmware_version", 1)
+                    if template_fw > fw_version:
+                        _LOGGER.debug("Skipping HC sensor %s for HC %d due to firmware version (required: %s, current: %s)", template_key, hc_idx, template_fw, fw_version)
+                        continue
+                    sensor_id = f"hc{hc_idx}_{template_key}"
+                    address = HC_BASE_ADDRESS.get(hc_idx)
+                    if address is None:
+                        _LOGGER.warning("No base address for HC %s", hc_idx)
+                        continue
+                    address += template["relative_address"]
+                    count = 2 if template["data_type"] == "int32" else 1
+                    try:
+                        _LOGGER.debug("Attempting to read Modbus register for HC sensor %s at address %d with count %d", sensor_id, address, count)
+                        result = await self.hass.async_add_executor_job(
+                            self.client.read_holding_registers,
+                            address,
+                            count,
+                            self.slave_id
+                        )
+                        if result.isError():
+                            _LOGGER.warning(f"Modbus error for {sensor_id}")
+                            continue
+                        if template["data_type"] == "int32":
+                            raw_value = (result.registers[0] << 16) | result.registers[1]
+                        else:
+                            raw_value = result.registers[0]
+                        scaled_value = raw_value * template["scale"]
+                        _LOGGER.debug(
+                            "Successfully read %s: %s (raw: %s)",
+                            sensor_id, scaled_value, raw_value
+                        )
+                        data[sensor_id] = scaled_value
+                    except Exception as ex:
+                        _LOGGER.error("Exception reading HC sensor %s at address %s: %s", sensor_id, address, ex)
             _LOGGER.debug("Final data structure: %s", data)
             return data
         except ModbusException as ex:

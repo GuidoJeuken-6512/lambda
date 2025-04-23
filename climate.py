@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, BOIL_SENSOR_TEMPLATES
+from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, BOIL_SENSOR_TEMPLATES, HC_SENSOR_TEMPLATES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,6 +59,23 @@ async def async_setup_entry(
                 return is_compatible
             _LOGGER.warning("Boiler sensor template for '%s' not found.", sensor_id)
             return False
+        # Prüfe dynamische HC-Sensoren
+        if sensor_id.startswith("hc"):
+            parts = sensor_id.split("_", 1)
+            if len(parts) == 2 and parts[1] in HC_SENSOR_TEMPLATES:
+                template = HC_SENSOR_TEMPLATES[parts[1]]
+                sensor_fw = template.get("firmware_version", 1)
+                is_compatible = sensor_fw <= fw_version
+                _LOGGER.debug(
+                    "Climate HC Sensor Compatibility Check - Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s",
+                    sensor_id,
+                    sensor_fw,
+                    fw_version,
+                    is_compatible
+                )
+                return is_compatible
+            _LOGGER.warning("HC sensor template for '%s' not found.", sensor_id)
+            return False
         # Prüfe statische Sensoren
         sensor_config = SENSOR_TYPES.get(sensor_id)
         if not sensor_config:
@@ -97,24 +114,25 @@ async def async_setup_entry(
                 )
             )
 
-    # Heating Circuit Entity
-    hc_current_temp_sensor = options.get("heating_circuit_current_temp_sensor", "hc1_room_device_temperature")
-    hc_target_temp_sensor = options.get("heating_circuit_target_temp_sensor", "hc1_target_room_temperature")
-
-    if is_sensor_compatible(hc_current_temp_sensor) and is_sensor_compatible(hc_target_temp_sensor):
-        entities.append(
-            LambdaClimateEntity(
-                coordinator=coordinator,
-                entry=entry,
-                climate_type="heating_circuit",
-                translation_key="heating_circuit",
-                current_temp_sensor=hc_current_temp_sensor,
-                target_temp_sensor=hc_target_temp_sensor,
-                min_temp=options.get("heating_circuit_min_temp", 15),
-                max_temp=options.get("heating_circuit_max_temp", 35),
-                temp_step=0.5
+    # Dynamische Heating Circuit Entities für alle Heizkreise
+    num_hc = entry.data.get("num_hc", 1)
+    for hc_idx in range(1, num_hc + 1):
+        hc_current_temp_sensor = f"hc{hc_idx}_room_device_temperature"
+        hc_target_temp_sensor = f"hc{hc_idx}_target_room_temperature"
+        if is_sensor_compatible(hc_current_temp_sensor) and is_sensor_compatible(hc_target_temp_sensor):
+            entities.append(
+                LambdaClimateEntity(
+                    coordinator=coordinator,
+                    entry=entry,
+                    climate_type=f"heating_circuit_{hc_idx}",
+                    translation_key="heating_circuit",
+                    current_temp_sensor=hc_current_temp_sensor,
+                    target_temp_sensor=hc_target_temp_sensor,
+                    min_temp=options.get("heating_circuit_min_temp", 15),
+                    max_temp=options.get("heating_circuit_max_temp", 35),
+                    temp_step=0.5
+                )
             )
-        )
     
     async_add_entities(entities)
 
@@ -188,6 +206,13 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
                     idx = int(self._target_temp_sensor[4])
                     from .const import BOIL_BASE_ADDRESS
                     sensor_info["address"] = BOIL_BASE_ADDRESS[idx] + sensor_info["relative_address"]
+            elif self._target_temp_sensor.startswith("hc"):
+                parts = self._target_temp_sensor.split("_", 1)
+                if len(parts) == 2 and parts[1] in HC_SENSOR_TEMPLATES:
+                    sensor_info = HC_SENSOR_TEMPLATES[parts[1]].copy()
+                    idx = int(self._target_temp_sensor[2])
+                    from .const import HC_BASE_ADDRESS
+                    sensor_info["address"] = HC_BASE_ADDRESS[idx] + sensor_info["relative_address"]
             else:
                 sensor_info = SENSOR_TYPES.get(self._target_temp_sensor)
             if not sensor_info:

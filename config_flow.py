@@ -85,6 +85,11 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=1,
                         description={"suggested_value": 1},
                     ): int,
+                    vol.Required(
+                        "num_hc",
+                        default=1,
+                        description={"suggested_value": 1},
+                    ): int,
                     vol.Optional("debug_mode", default=False): bool,
                     vol.Optional(
                         "firmware_version",
