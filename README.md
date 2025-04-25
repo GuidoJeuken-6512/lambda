@@ -5,6 +5,10 @@
 
 ## Deutsch
 
+## Branches
+Im "main" Branch steht die Grundfunktionalität zur Verfügung. 
+Im "subdevices" steht zudem die Möglichkeit zur Verfügung mehrer Untergeräte der Klassen HeatPump/Heating curcuit/Boiler zu erzeugen und eine RaumThemostat Steuerung einzurichten.
+
 Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärmepumpen in Home Assistant über das Modbus/TCP Protokoll. Sie liest Sensordaten aus und ermöglicht die Steuerung von Klima-Entitäten (z.B. Warmwasser, Heizkreis).
 
 **Features:**
@@ -45,6 +49,10 @@ Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärm
 ## English
 
 This custom integration allows you to connect Lambda heat pumps to Home Assistant via the Modbus/TCP protocol. It reads sensor data and enables control of climate entities (e.g., hot water, heating circuit).
+
+## Branches
+The basic functionality is available in the “main” branch. 
+In the “subdevices” it is also possible to create several subdevices of the classes HeatPump/Heating circuit/Boiler and to set up a room thermostat control.
 
 **Features:**
 - Reads various heat pump sensors (temperatures, states, energy consumption, etc.)
