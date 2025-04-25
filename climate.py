@@ -165,14 +165,22 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
         self._climate_type = climate_type
         self._current_temp_sensor = current_temp_sensor
         self._target_temp_sensor = target_temp_sensor
-        # Entferne Übersetzungsschlüssel und setze statischen Namen
-        if climate_type == "hot_water":
-            self._attr_name = "Warmwasser"
-        elif climate_type == "heating_circuit":
-            self._attr_name = "Heizkreis"
+        name_prefix = entry.data.get("name", "lambda").lower().replace(" ", "")
+        # Name und unique_id nach Schema
+        if climate_type.startswith("hot_water"):
+            idx = climate_type.split("_")[-1]
+            self._attr_name = f"{name_prefix.upper()} Boil{idx}"
+            self._attr_unique_id = f"{name_prefix}_boil{idx}_climate"
+            self.entity_id = f"climate.{name_prefix}_boil{idx}_climate"
+        elif climate_type.startswith("heating_circuit"):
+            idx = climate_type.split("_")[-1]
+            self._attr_name = f"{name_prefix.upper()} HC {idx}"
+            self._attr_unique_id = f"{name_prefix}_hc{idx}_climate"
+            self.entity_id = f"climate.{name_prefix}_hc{idx}_climate"
         else:
             self._attr_name = climate_type.capitalize()
-        self._attr_unique_id = f"{entry.entry_id}_{climate_type}"
+            self._attr_unique_id = f"{name_prefix}_{climate_type}_climate"
+            self.entity_id = f"climate.{name_prefix}_{climate_type}_climate"
         self._attr_min_temp = min_temp
         self._attr_max_temp = max_temp
         self._attr_target_temperature_step = temp_step

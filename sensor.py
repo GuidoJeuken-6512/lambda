@@ -41,12 +41,12 @@ async def async_setup_entry(
     
     # Erstelle eine Liste von Sensoren basierend auf der Firmware-Version
     entities = []
-    
+    name_prefix = entry.data.get("name", "lambda").lower().replace(" ", "")
+
+    # Statische Sensoren mit Prefix und angepasstem Friendly Name versehen
     for sensor_id, sensor_config in SENSOR_TYPES.items():
-        # Prüfe ob der Sensor für diese Firmware-Version verfügbar ist
         sensor_fw = sensor_config.get("firmware_version", 1)
         is_compatible = sensor_fw <= fw_version
-        
         _LOGGER.debug(
             "Sensor Compatibility Check - Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s, Raw Sensor Config: %s",
             sensor_id,
@@ -55,14 +55,19 @@ async def async_setup_entry(
             is_compatible,
             sensor_config
         )
-        
         if is_compatible:
+            # sensor_id bleibt unverändert (ohne Prefix)
+            sensor_config_with_name = sensor_config.copy()
+            if not sensor_config["name"].upper().startswith(name_prefix.upper()):
+                sensor_config_with_name["name"] = f"{name_prefix.upper()} {sensor_config['name']}"
+            else:
+                sensor_config_with_name["name"] = sensor_config["name"]
             entities.append(
                 LambdaSensor(
                     coordinator=coordinator,
                     entry=entry,
                     sensor_id=sensor_id,
-                    sensor_config=sensor_config,
+                    sensor_config=sensor_config_with_name,
                 )
             )
     
@@ -86,11 +91,12 @@ async def async_setup_entry(
             if not is_compatible:
                 _LOGGER.debug("Skipping HP sensor %s for HP %d due to firmware version (required: %s, current: %s)", template_key, hp_idx, template_fw, fw_version)
                 continue
+            # Korrekte sensor_id: <name>_hp<idx>_<template_key>
             sensor_id = f"hp{hp_idx}_{template_key}"
             address = HP_BASE_ADDRESS[hp_idx] + template["relative_address"]
             sensor_config = template.copy()
             sensor_config["address"] = address
-            sensor_config["name"] = f"Heat Pump {hp_idx} {template['name'].replace('Heat Pump ', '')}"
+            sensor_config["name"] = f"{name_prefix.upper()} HP{hp_idx} {template['name']}"
             _LOGGER.debug("Creating sensor: %s at address: %d", sensor_id, address)
             entities.append(
                 LambdaSensor(
@@ -107,6 +113,7 @@ async def async_setup_entry(
     _LOGGER.debug("Starting dynamic sensor generation for %d boilers", num_boil)
     for boil_idx in range(1, num_boil + 1):
         for template_key, template in BOIL_SENSOR_TEMPLATES.items():
+            # Firmware-Prüfung für dynamische Boiler-Sensoren
             template_fw = template.get("firmware_version", 1)
             is_compatible = template_fw <= fw_version
             _LOGGER.debug(
@@ -121,11 +128,15 @@ async def async_setup_entry(
             if not is_compatible:
                 _LOGGER.debug("Skipping Boiler sensor %s for Boiler %d due to firmware version (required: %s, current: %s)", template_key, boil_idx, template_fw, fw_version)
                 continue
+            # Korrekte sensor_id: <name>_boil<idx>_<template_key>
             sensor_id = f"boil{boil_idx}_{template_key}"
             address = BOIL_BASE_ADDRESS[boil_idx] + template["relative_address"]
             sensor_config = template.copy()
             sensor_config["address"] = address
-            sensor_config["name"] = f"Boiler {boil_idx} {template['name'].replace('Boiler ', '')}"
+            # Boiler aus dem Namen entfernen, auch im original_name
+            orig_name = template["name"].replace("Boiler ", "")
+            sensor_config["name"] = f"{name_prefix.upper()} Boil{boil_idx} {orig_name}"
+            sensor_config["original_name"] = f"{name_prefix.upper()} Boil{boil_idx} {orig_name}"
             _LOGGER.debug("Creating boiler sensor: %s at address: %d", sensor_id, address)
             entities.append(
                 LambdaSensor(
@@ -156,11 +167,12 @@ async def async_setup_entry(
             if not is_compatible:
                 _LOGGER.debug("Skipping HC sensor %s for HC %d due to firmware version (required: %s, current: %s)", template_key, hc_idx, template_fw, fw_version)
                 continue
+            # Korrekte sensor_id: <name>_hc<idx>_<template_key>
             sensor_id = f"hc{hc_idx}_{template_key}"
             address = HC_BASE_ADDRESS[hc_idx] + template["relative_address"]
             sensor_config = template.copy()
             sensor_config["address"] = address
-            sensor_config["name"] = f"Heating Circuit {hc_idx} {template['name'].replace('Heating Circuit ', '')}"
+            sensor_config["name"] = f"{name_prefix.upper()} HC{hc_idx} {template['name']}"
             _LOGGER.debug("Creating sensor: %s at address: %d", sensor_id, address)
             entities.append(
                 LambdaSensor(
@@ -193,7 +205,8 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
         self._sensor_id = sensor_id
         self._config = sensor_config
         self._attr_name = sensor_config["name"]
-        self._attr_unique_id = f"{entry.entry_id}_{sensor_id}"
+        self._attr_unique_id = sensor_id
+        self.entity_id = f"sensor.{sensor_id}"
         self._attr_native_unit_of_measurement = sensor_config["unit"]
         
         # Setze die Genauigkeit
