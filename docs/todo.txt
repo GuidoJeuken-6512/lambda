@@ -1,7 +1,5 @@
 ## Übersetzungen funktioniern nicht sauber.
 
-## Sensoren für solar und buffer beides dynamisch analog zu HP / HC / BOIL 
-
 ## die steuerung über das Raumthermostat im config flow abfragen ja/nein und wenn ja 
     die entität des thermometers abfagen / eine automatisierung erstellen, die den wert an das entsprechenden Modbus register sendet.
     

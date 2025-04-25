@@ -48,5 +48,7 @@
     "hvac_mode_heat": "Heizen",
     "hvac_modes": "Modi",
     "error_set_temp_failed": "Setzen der Zieltemperatur fehlgeschlagen."
-  }
+  },
+  "room_thermostat_control": "Raumthermostat-Steuerung",
+  "room_thermostat_control_tooltip": "Hiermit wird die Raumthermostat-Steuerung für die Lambda Wärmepumpe aktiviert. Bitte ggf. in der Hilfe nachsehen."
 }

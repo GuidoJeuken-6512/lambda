@@ -52,18 +52,76 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
+        if user_input is None:
+            user_input = {}
+        # Default-Werte aus bestehendem Eintrag holen, falls vorhanden
+        current_entries = self._async_current_entries()
+        existing_data = current_entries[0].data if current_entries else {}
 
-        if user_input is not None:
-            try:
-                await validate_input(self.hass, user_input)
+        # Pflichtfelder prüfen
+        required_fields = [CONF_NAME, CONF_HOST, CONF_PORT, CONF_SLAVE_ID]
+        if not all(k in user_input and user_input[k] for k in required_fields):
+            # Formular anzeigen, wenn Eingaben fehlen
+            firmware_options = list(FIRMWARE_VERSION.keys())
+            return self.async_show_form(
+                step_id="user",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, existing_data.get(CONF_NAME, DEFAULT_NAME))): str,
+                        vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, existing_data.get(CONF_HOST, DEFAULT_HOST))): str,
+                        vol.Required(CONF_PORT, default=user_input.get(CONF_PORT, existing_data.get(CONF_PORT, DEFAULT_PORT))): int,
+                        vol.Required(CONF_SLAVE_ID, default=user_input.get(CONF_SLAVE_ID, existing_data.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID))): int,
+                        vol.Required(
+                            "num_hps",
+                            default=user_input.get("num_hps", existing_data.get("num_hps", 1)),
+                            description={"suggested_value": 1},
+                        ): int,
+                        vol.Required(
+                            "num_boil",
+                            default=user_input.get("num_boil", existing_data.get("num_boil", 1)),
+                            description={"suggested_value": 1},
+                        ): int,
+                        vol.Required(
+                            "num_hc",
+                            default=user_input.get("num_hc", existing_data.get("num_hc", 1)),
+                            description={"suggested_value": 1},
+                        ): int,
+                        vol.Optional(
+                            "room_thermostat_control",
+                            default=user_input.get("room_thermostat_control", existing_data.get("room_thermostat_control", False)),
+                            description={
+                                "suggested_value": False,
+                                "description": "{room_thermostat_control_tooltip}"
+                            }
+                        ): bool,
+                        vol.Optional(
+                            "firmware_version",
+                            default=user_input.get("firmware_version", existing_data.get("firmware_version", DEFAULT_FIRMWARE)),
+                        ): vol.In(firmware_options),
+                    }
+                ),
+                errors=errors,
+                description_placeholders={
+                    "room_thermostat_control_tooltip": "room_thermostat_control_tooltip"
+                }
+            )
+
+        try:
+            # Ergänze fehlende Pflichtfelder aus existing_data oder Default
+            if CONF_NAME not in user_input or not user_input[CONF_NAME]:
+                user_input[CONF_NAME] = existing_data.get(CONF_NAME, DEFAULT_NAME)
+            await validate_input(self.hass, user_input)
+            if CONF_NAME not in user_input or not user_input[CONF_NAME]:
+                errors["base"] = "name_required"
+            else:
                 return self.async_create_entry(
                     title=user_input[CONF_NAME], data=user_input
                 )
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
+        except CannotConnect:
+            errors["base"] = "cannot_connect"
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception")
+            errors["base"] = "unknown"
 
         firmware_options = list(FIRMWARE_VERSION.keys())
 
@@ -71,34 +129,43 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_NAME, default=DEFAULT_NAME): str,
-                    vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
-                    vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
-                    vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): int,
+                    vol.Required(CONF_NAME, default=user_input.get(CONF_NAME, existing_data.get(CONF_NAME, DEFAULT_NAME))): str,
+                    vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, existing_data.get(CONF_HOST, DEFAULT_HOST))): str,
+                    vol.Required(CONF_PORT, default=user_input.get(CONF_PORT, existing_data.get(CONF_PORT, DEFAULT_PORT))): int,
+                    vol.Required(CONF_SLAVE_ID, default=user_input.get(CONF_SLAVE_ID, existing_data.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID))): int,
                     vol.Required(
                         "num_hps",
-                        default=1,
+                        default=user_input.get("num_hps", existing_data.get("num_hps", 1)),
                         description={"suggested_value": 1},
                     ): int,
                     vol.Required(
                         "num_boil",
-                        default=1,
+                        default=user_input.get("num_boil", existing_data.get("num_boil", 1)),
                         description={"suggested_value": 1},
                     ): int,
                     vol.Required(
                         "num_hc",
-                        default=1,
+                        default=user_input.get("num_hc", existing_data.get("num_hc", 1)),
                         description={"suggested_value": 1},
                     ): int,
-                    vol.Optional("debug_mode", default=False): bool,
+                    vol.Optional(
+                        "room_thermostat_control",
+                        default=user_input.get("room_thermostat_control", existing_data.get("room_thermostat_control", False)),
+                        description={
+                            "suggested_value": False,
+                            "description": "{room_thermostat_control_tooltip}"
+                        }
+                    ): bool,
                     vol.Optional(
                         "firmware_version",
-                        default=DEFAULT_FIRMWARE,
+                        default=user_input.get("firmware_version", existing_data.get("firmware_version", DEFAULT_FIRMWARE)),
                     ): vol.In(firmware_options),
                 }
             ),
             errors=errors,
-            description_placeholders=None
+            description_placeholders={
+                "room_thermostat_control_tooltip": "room_thermostat_control_tooltip"
+            }
         )
 
     @staticmethod
@@ -119,11 +186,15 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                # Wenn die Firmware-Version geändert wurde, aktualisiere die Hauptdaten
                 update_data = False
                 new_data = dict(self.config_entry.data)
+                # Firmware-Version
                 if "firmware_version" in user_input and user_input["firmware_version"] != self.config_entry.data.get("firmware_version"):
                     new_data["firmware_version"] = user_input["firmware_version"]
+                    update_data = True
+                # Room Thermostat Control
+                if "room_thermostat_control" in user_input and user_input["room_thermostat_control"] != self.config_entry.data.get("room_thermostat_control", False):
+                    new_data["room_thermostat_control"] = user_input["room_thermostat_control"]
                     update_data = True
                 if update_data:
                     self.hass.config_entries.async_update_entry(
@@ -131,7 +202,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
                         data=new_data
                     )
                 # Entferne die Felder aus den Options, die in data gespeichert werden
-                user_input = {k: v for k, v in user_input.items() if k not in ("firmware_version",)}
+                user_input = {k: v for k, v in user_input.items() if k not in ("firmware_version", "room_thermostat_control")}
                 return self.async_create_entry(title="", data=user_input)
             except CannotConnect:
                 errors["base"] = "cannot_connect"
@@ -164,6 +235,14 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
                 default=options.get("update_interval", 10),
             ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
             vol.Optional(
+                "room_thermostat_control",
+                default=options.get("room_thermostat_control", False),
+                description={
+                    "suggested_value": False,
+                    "description": "{room_thermostat_control_tooltip}"
+                }
+            ): bool,
+            vol.Optional(
                 "firmware_version",
                 default=self.config_entry.data.get("firmware_version", "V0.0.4-3K"),
             ): vol.In(firmware_options),
@@ -173,7 +252,9 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(schema),
             errors=errors,
-            description_placeholders=None,
+            description_placeholders={
+                "room_thermostat_control_tooltip": "room_thermostat_control_tooltip"
+            },
         )
 
     async def _test_connection(self, user_input: dict[str, Any]) -> None:

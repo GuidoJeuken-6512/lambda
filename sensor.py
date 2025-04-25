@@ -189,7 +189,7 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        
+        self._entry = entry
         self._sensor_id = sensor_id
         self._config = sensor_config
         self._attr_name = sensor_config["name"]
@@ -221,3 +221,52 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
             
         # Die Skalierung wurde bereits im Coordinator angewendet
         return value
+
+    @property
+    def device_info(self):
+        device_type = self._config.get("device_type")
+        if device_type == "main":
+            return {
+                "identifiers": {(DOMAIN, self._entry.entry_id)},
+                "name": self._entry.data.get("name", "Lambda WP"),
+                "manufacturer": "Lambda",
+                "model": self._entry.data.get("firmware_version", "unknown"),
+                "configuration_url": f"http://{self._entry.data.get('host')}",
+                "sw_version": self._entry.data.get("firmware_version", "unknown"),
+                "entry_type": None,
+                "suggested_area": None,
+                "via_device": None,
+                "hw_version": None,
+                "serial_number": None
+            }
+        if device_type == "heat_pump":
+            idx = self._sensor_id[2]
+            return {
+                "identifiers": {(DOMAIN, f"{self._entry.entry_id}_hp{idx}")},
+                "name": f"Heat Pump {idx}",
+                "manufacturer": "Lambda",
+                "model": self._entry.data.get("firmware_version", "unknown"),
+                "via_device": (DOMAIN, self._entry.entry_id),
+                "entry_type": "service"
+            }
+        if device_type == "boiler":
+            idx = self._sensor_id[4]
+            return {
+                "identifiers": {(DOMAIN, f"{self._entry.entry_id}_boil{idx}")},
+                "name": f"Boiler {idx}",
+                "manufacturer": "Lambda",
+                "model": self._entry.data.get("firmware_version", "unknown"),
+                "via_device": (DOMAIN, self._entry.entry_id),
+                "entry_type": "service"
+            }
+        if device_type == "heating_circuit":
+            idx = self._sensor_id[2]
+            return {
+                "identifiers": {(DOMAIN, f"{self._entry.entry_id}_hc{idx}")},
+                "name": f"Heating Circuit {idx}",
+                "manufacturer": "Lambda",
+                "model": self._entry.data.get("firmware_version", "unknown"),
+                "via_device": (DOMAIN, self._entry.entry_id),
+                "entry_type": "service"
+            }
+        return None

@@ -191,6 +191,40 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
             return None
         return self.coordinator.data.get(self._target_temp_sensor)
 
+    @property
+    def device_info(self):
+        from .const import SENSOR_TYPES, HP_SENSOR_TEMPLATES, BOIL_SENSOR_TEMPLATES, HC_SENSOR_TEMPLATES
+        # Hauptgerät für Boiler/HC: climate_type hot_water_X oder heating_circuit_X
+        if self._climate_type.startswith("hot_water"):
+            idx = self._climate_type.split("_")[-1]
+            return {
+                "identifiers": {(DOMAIN, f"{self._entry.entry_id}_boil{idx}")},
+                "name": f"Boiler {idx}",
+                "manufacturer": "Lambda",
+                "model": self._entry.data.get("firmware_version", "unknown"),
+                "via_device": (DOMAIN, self._entry.entry_id),
+                "entry_type": "service"
+            }
+        if self._climate_type.startswith("heating_circuit"):
+            idx = self._climate_type.split("_")[-1]
+            return {
+                "identifiers": {(DOMAIN, f"{self._entry.entry_id}_hc{idx}")},
+                "name": f"Heating Circuit {idx}",
+                "manufacturer": "Lambda",
+                "model": self._entry.data.get("firmware_version", "unknown"),
+                "via_device": (DOMAIN, self._entry.entry_id),
+                "entry_type": "service"
+            }
+        # Fallback: Hauptgerät
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": self._entry.data.get("name", "Lambda WP"),
+            "manufacturer": "Lambda",
+            "model": self._entry.data.get("firmware_version", "unknown"),
+            "configuration_url": f"http://{self._entry.data.get('host')}",
+            "sw_version": self._entry.data.get("firmware_version", "unknown")
+        }
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
         if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:

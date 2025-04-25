@@ -45,6 +45,8 @@
     "set_temperature": "Set Temperature",
     "hvac_mode_heat": "Heat",
     "hvac_modes": "Modes",
-    "error_set_temp_failed": "Failed to set target temperature."
+    "error_set_temp_failed": "Failed to set target temperature.",
+    "room_thermostat_control": "Room Thermostat Control",
+    "room_thermostat_control_tooltip": "This enables room thermostat control for the Lambda heat pump. Please refer to the help if needed."
   }
 }

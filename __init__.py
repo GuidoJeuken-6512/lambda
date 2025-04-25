@@ -61,11 +61,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except ValueError as ex:
         _LOGGER.debug("Platform was not loaded or already unloaded: %s", ex)
         unload_ok = True
-    if entry.entry_id in hass.data[DOMAIN]:
-        coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-        if coordinator.client:
+    # Nur entfernen, wenn der Key existiert
+    if DOMAIN in hass.data and entry.entry_id in hass.data[DOMAIN]:
+        coordinator = hass.data[DOMAIN][entry.entry_id].get("coordinator")
+        if coordinator and getattr(coordinator, "client", None):
             await hass.async_add_executor_job(coordinator.client.close)
         hass.data[DOMAIN].pop(entry.entry_id)
+    else:
+        _LOGGER.debug("Entry %s not in hass.data[%s], nothing to remove.", entry.entry_id, DOMAIN)
     return unload_ok
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
