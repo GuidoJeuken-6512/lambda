@@ -32,14 +32,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-def get_sensor_options() -> dict[str, Any]:
-    """Get sensor options from SENSOR_TYPES."""
-    options = {}
-    for sensor_key, sensor_info in SENSOR_TYPES.items():
-        if "temperature" in sensor_key.lower():
-            options[sensor_key] = f"{sensor_info['name']} (Register {sensor_info['address']})"
-    return options
-
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     """Validate the user input allows us to connect."""
     # Hier können wir später eine Validierung hinzufügen

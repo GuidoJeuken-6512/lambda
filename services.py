@@ -37,7 +37,7 @@ UPDATE_ROOM_TEMPERATURE_SCHEMA = vol.Schema(
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up Lambda WP services."""
-    _LOGGER.warning("async_setup_services called")
+    _LOGGER.debug("async_setup_services called")
     # Speichere die Unsubscribe-Funktionen pro Entry, um sie später entfernen zu können
     unsub_update_callbacks = {}
     
@@ -146,7 +146,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     @callback
     def setup_scheduled_updates() -> None:
         """Set up scheduled updates for all entries."""
-        _LOGGER.warning("setup_scheduled_updates called")
         # Bestehende Unsubscriber entfernen
         for unsub in unsub_update_callbacks.values():
             unsub()
@@ -178,7 +177,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 
             # Update-Intervall aus der Konstante
             update_interval = timedelta(minutes=ROOM_TEMPERATURE_UPDATE_INTERVAL)
-            _LOGGER.warning("Timer registered for entry_id %s, interval: %s", entry_id, update_interval)
             
             # Erstelle ServiceCall-Daten für den spezifischen Entry
             service_data = {ATTR_ENTITY_ID: entry_id}

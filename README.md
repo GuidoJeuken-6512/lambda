@@ -1,5 +1,6 @@
 # Lambda Wärmepumpe Integration für Home Assistant / Lambda Heat Pump Integration for Home Assistant
 
+
 ---
 
 ## Deutsch
