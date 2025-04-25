@@ -13,8 +13,7 @@
           "debug_mode": "Debug Mode",
           "num_hps": "Number of heat pumps",
           "num_boil": "Number of hot water boilers",
-          "num_hc": "Number of heating circuits",
-          "room_thermostat_control": "Room Thermostat Control"
+          "num_hc": "Number of heating circuits"
         }
       },
       "room_sensor": {

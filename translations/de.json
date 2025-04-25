@@ -13,8 +13,7 @@
           "debug_mode": "Debug-Modus",
           "num_hps": "Anzahl der Wärmepumpen",
           "num_boil": "Anzahl der Warmwasser Speicher",
-          "num_hc": "Anzahl der Heizkreise",
-          "room_thermostat_control": "Raumthermostat-Steuerung"
+          "num_hc": "Anzahl der Heizkreise"
         }
       },
       "room_sensor": {

@@ -37,7 +37,7 @@ UPDATE_ROOM_TEMPERATURE_SCHEMA = vol.Schema(
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up Lambda WP services."""
-    
+    _LOGGER.warning("async_setup_services called")
     # Speichere die Unsubscribe-Funktionen pro Entry, um sie später entfernen zu können
     unsub_update_callbacks = {}
     
@@ -45,20 +45,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Update room temperature from the selected sensor to Modbus register."""
         # Hole alle Lambda-Integrationen
         lambda_entries = hass.data.get(DOMAIN, {})
-        
+        _LOGGER.debug("[Service] Lambda entries: %s", list(lambda_entries.keys()))
         if not lambda_entries:
             _LOGGER.error("No Lambda WP integrations found")
             return
         
         # Optional spezifisches Entity_ID zur Einschränkung
         target_entity_id = call.data.get(ATTR_ENTITY_ID)
-        
+        _LOGGER.debug("[Service] ServiceCall ATTR_ENTITY_ID: %s", target_entity_id)
         for entry_id, entry_data in lambda_entries.items():
             config_entry = hass.config_entries.async_get_entry(entry_id)
             if not config_entry or not config_entry.options:
                 _LOGGER.debug("No config entry or options for entry_id %s", entry_id)
                 continue
-                
+            _LOGGER.debug("[Service] Options for entry_id %s: %s", entry_id, config_entry.options)
             # Prüfe, ob Raumthermostat aktiviert ist
             if not config_entry.options.get("room_thermostat_control", False):
                 _LOGGER.debug("Room thermostat control not enabled for entry_id %s", entry_id)
@@ -66,9 +66,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 
             # Anzahl Heizkreise ermitteln
             num_hc = config_entry.data.get("num_hc", 1)
+            _LOGGER.debug("[Service] num_hc for entry_id %s: %s", entry_id, num_hc)
             
             # Wenn eine spezifische Entity-ID angegeben wurde und nicht übereinstimmt, überspringe
             if target_entity_id and target_entity_id != entry_id:
+                _LOGGER.debug("Skipping entry_id %s due to ATTR_ENTITY_ID filter", entry_id)
                 continue
                 
             # Hole Coordinator für gemeinsame Nutzung
@@ -80,9 +82,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             # Für jeden Heizkreis prüfen und aktualisieren
             for hc_idx in range(1, num_hc + 1):
                 entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
-                
-                # Prüfen, ob für diesen Heizkreis ein Temperatursensor konfiguriert ist
                 room_temp_entity_id = config_entry.options.get(entity_key)
+                _LOGGER.debug("[Service] Prüfe Heizkreis %s: entity_key=%s, room_temp_entity_id=%s", hc_idx, entity_key, room_temp_entity_id)
                 if not room_temp_entity_id:
                     _LOGGER.debug("No room temperature entity selected for heating circuit %s in entry_id %s", 
                                  hc_idx, entry_id)
@@ -90,11 +91,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 
                 # Holen der Temperatur vom Sensor
                 state = hass.states.get(room_temp_entity_id)
+                _LOGGER.debug("[Service] State for %s: %s", room_temp_entity_id, state)
                 if state is None or state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN, ""):
                     _LOGGER.warning(
-                        "Room temperature entity %s is not available for heating circuit %s",
+                        "Room temperature entity %s is not available for heating circuit %s (state: %s)",
                         room_temp_entity_id,
-                        hc_idx
+                        hc_idx,
+                        state.state if state else None
                     )
                     continue
                     
@@ -143,6 +146,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     @callback
     def setup_scheduled_updates() -> None:
         """Set up scheduled updates for all entries."""
+        _LOGGER.warning("setup_scheduled_updates called")
         # Bestehende Unsubscriber entfernen
         for unsub in unsub_update_callbacks.values():
             unsub()
@@ -174,21 +178,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 
             # Update-Intervall aus der Konstante
             update_interval = timedelta(minutes=ROOM_TEMPERATURE_UPDATE_INTERVAL)
-            
-            # Timer einrichten
-            _LOGGER.debug(
-                "Setting up scheduled room temperature updates for entry_id %s every %s",
-                entry_id,
-                update_interval
-            )
+            _LOGGER.warning("Timer registered for entry_id %s, interval: %s", entry_id, update_interval)
             
             # Erstelle ServiceCall-Daten für den spezifischen Entry
             service_data = {ATTR_ENTITY_ID: entry_id}
             
-            # Timer starten mit periodischem Aufruf des Services
+            # Timer einrichten
+            async def scheduled_update_callback(_):
+                _LOGGER.warning("scheduled_update_callback called for entry_id %s", entry_id)
+                await async_update_room_temperature(ServiceCall(DOMAIN, "update_room_temperature", service_data))
+
             unsub = async_track_time_interval(
                 hass,
-                lambda _: async_update_room_temperature(ServiceCall(DOMAIN, "update_room_temperature", service_data)),
+                scheduled_update_callback,
                 update_interval
             )
             
@@ -235,4 +237,4 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     # Unsubscribe von allen Timern
     if f"{DOMAIN}_services" in hass.data and "unsub_callbacks" in hass.data[f"{DOMAIN}_services"]:
         hass.data[f"{DOMAIN}_services"]["unsub_callbacks"]()
-        del hass.data[f"{DOMAIN}_services"] 
+        del hass.data[f"{DOMAIN}_services"]

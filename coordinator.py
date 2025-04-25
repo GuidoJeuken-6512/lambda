@@ -200,7 +200,6 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
                         data[sensor_id] = scaled_value
                     except Exception as ex:
                         _LOGGER.error("Exception reading HC sensor %s at address %s: %s", sensor_id, address, ex)
-            _LOGGER.debug("Final data structure: %s", data)
             return data
         except ModbusException as ex:
             _LOGGER.error("Modbus error: %s", ex)

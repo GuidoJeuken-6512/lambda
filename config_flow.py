@@ -96,10 +96,6 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             description={"suggested_value": 1},
                         ): int,
                         vol.Optional(
-                            "room_thermostat_control",
-                            default=user_input.get("room_thermostat_control", existing_data.get("room_thermostat_control", DEFAULT_ROOM_THERMOSTAT_CONTROL))
-                        ): bool,
-                        vol.Optional(
                             "firmware_version",
                             default=user_input.get("firmware_version", existing_data.get("firmware_version", DEFAULT_FIRMWARE)),
                         ): vol.In(firmware_options),
@@ -168,10 +164,6 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=user_input.get("num_hc", existing_data.get("num_hc", 1)),
                         description={"suggested_value": 1},
                     ): int,
-                    vol.Optional(
-                        "room_thermostat_control",
-                        default=user_input.get("room_thermostat_control", existing_data.get("room_thermostat_control", DEFAULT_ROOM_THERMOSTAT_CONTROL))
-                    ): bool,
                     vol.Optional(
                         "firmware_version",
                         default=user_input.get("firmware_version", existing_data.get("firmware_version", DEFAULT_FIRMWARE)),
@@ -264,7 +256,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        # Do not store config_entry as an instance variable (deprecated)
         self.options = dict(config_entry.options)
         self.room_thermostat_was_enabled = False
 
@@ -369,50 +361,43 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the room sensor selection step."""
+        from homeassistant.helpers.entity_registry import async_get
         errors: dict[str, str] = {}
-        
-        # Anzahl der Heizkreise aus der Konfiguration holen
         num_hc = self.config_entry.data.get("num_hc", 1)
-        
+
         if user_input is not None:
             try:
-                # Speichere die ausgewählten Entitäten in den Optionen
                 for hc_idx in range(1, num_hc + 1):
                     entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
-                    # Nur speichern, wenn eine Auswahl getroffen wurde
                     if entity_key in user_input and user_input[entity_key]:
                         self.options[entity_key] = user_input[entity_key]
-                    # Wenn keine Auswahl getroffen wurde, entferne die Option falls vorhanden
                     elif entity_key in self.options:
                         del self.options[entity_key]
-                
-                # Erstelle den Config Entry mit den gesammelten Daten
                 return self.async_create_entry(title="", data=self.options)
-            except Exception:  # pylint: disable=broad-except
+            except Exception:
                 _LOGGER.exception("Unexpected exception in room sensor selection")
                 errors["base"] = "unknown"
-        
-        # Finde alle Temperatur-Entitäten, die nicht zur Lambda-Domain gehören
+
+        # Hole alle Entities, die NICHT zur eigenen Integration gehören
         temp_entities = []
+        registry = async_get(self.hass)
+        eigene_entity_ids = {e.entity_id for e in registry.entities.values() if e.config_entry_id == self.config_entry.entry_id}
         for entity_id in self.hass.states.async_entity_ids():
+            if entity_id in eigene_entity_ids:
+                continue
             state = self.hass.states.get(entity_id)
             if state is None:
                 continue
-            
-            # Prüfe, ob es eine Temperatur-Entität ist und nicht zur Lambda-Domain gehört
-            domain = entity_id.split('.')[0]
-            if domain != DOMAIN and state.attributes.get("device_class") == SensorDeviceClass.TEMPERATURE:
+            if state.attributes.get("device_class") == "temperature":
                 temp_entities.append(entity_id)
-        
+
         if not temp_entities:
-            # Wenn keine Temperatur-Entitäten gefunden wurden, zeige eine Fehlermeldung
             errors["base"] = "no_temp_sensors"
             return self.async_show_form(
                 step_id="room_sensor",
                 errors=errors
             )
-        
-        # Schema für jeden Heizkreis erstellen
+
         schema = {}
         for hc_idx in range(1, num_hc + 1):
             entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
@@ -422,13 +407,11 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
             )] = EntitySelector(
                 EntitySelectorConfig(
                     domain=["sensor", "climate", "weather"],
-                    device_class=SensorDeviceClass.TEMPERATURE,
+                    device_class="temperature",
                     multiple=False,
                     include_entities=temp_entities
                 )
             )
-        
-        # Zeige das Formular zur Auswahl eines Temperatursensors für jeden Heizkreis
         return self.async_show_form(
             step_id="room_sensor",
             data_schema=vol.Schema(schema),
