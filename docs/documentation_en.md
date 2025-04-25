@@ -20,6 +20,29 @@ The integration consists of the following main files:
 - The firmware version is considered: sensors/entities are only created if they are compatible with the selected firmware.
 - If the number of boilers or heating circuits is set to 0, no corresponding entities are created.
 
+## Room Thermostat Control
+
+The integration offers room thermostat control, which allows using external temperature sensors for each heating circuit:
+
+- Activation via the `room_thermostat_control` option during setup or in the options
+- After activation, an additional configuration step is displayed where a temperature sensor can be selected for each configured heating circuit
+- The selected sensors are stored in the `options` dict of the config entry
+- The measured temperatures are transmitted via Modbus to the corresponding registers of the heat pump
+- The heat pump uses these values instead of its internal measurements for heating circuit control
+- The transmission occurs automatically at regular intervals (configured via `ROOM_TEMPERATURE_UPDATE_INTERVAL`)
+
+## Home Assistant 2025.3 Compatibility
+
+The integration has been optimized for Home Assistant 2025.3:
+
+- Use of the latest `DataUpdateCoordinator` pattern for efficient data updates
+- Proper typing of all methods and variables with Python type annotations
+- Consistent use of `async`/`await` for non-blocking operations
+- Improved error handling according to Home Assistant standards
+- Modern configuration flows with `vol.Schema`
+- Optimized translations in the new format
+- Efficient resource management through automatic unloading of unused components
+
 ## Workflow
 
 1. **Setup (`async_setup_entry` in `__init__.py`)**:
@@ -47,8 +70,10 @@ The integration consists of the following main files:
 4. **Configuration Flow (`config_flow.py`)**:
     * **`LambdaConfigFlow`**: Called when the integration is added.
         * `async_step_user`: Shows the initial form (name, host, port, slave ID, debug mode, firmware version, number of HP/Boiler/HC). Firmware options are generated from `FIRMWARE_VERSION`. After input, data is validated and a config entry is created (`async_create_entry`).
+        * `async_step_room_sensor`: Called when room thermostat control is activated. Lists available temperature sensors and allows selection per heating circuit.
     * **`LambdaOptionsFlow`**: Called when the user edits integration options.
-        * `async_step_init`: Shows the options form (temperature ranges, update interval, firmware version). The number of instances cannot be changed afterwards.
+        * `async_step_init`: Shows the options form (temperature ranges, update interval, firmware version, room thermostat control). The number of instances cannot be changed afterwards.
+        * `async_step_room_sensor`: Called when room thermostat control is activated or changed.
 
 5. **Reload on Configuration Change (`async_reload_entry` in `__init__.py`)**:
     * The listener registered in `async_setup_entry` calls this function when config entry data changes (e.g., via the options flow).
@@ -64,9 +89,11 @@ The integration consists of the following main files:
 
 * **LambdaConfigFlow (`config_flow.py`)**
     * `async_step_user(user_input)`: Handles the initial setup step. Shows the form and creates the config entry.
+    * `async_step_room_sensor(user_input)`: Enables the selection of temperature sensors for room thermostat control.
 
 * **LambdaOptionsFlow (`config_flow.py`)**
     * `async_step_init(user_input)`: Handles the options flow. Shows the form. Updates the main data (`config_entry.data`) if the firmware version changes and saves the remaining options.
+    * `async_step_room_sensor(user_input)`: Enables changing the temperature sensors for room thermostat control.
 
 * **LambdaSensor (`sensor.py`)**
     * `__init__(coordinator, entry, sensor_id, sensor_config)`: Initializes the sensor entity. Stores configuration, sets attributes like name, `unique_id`, unit, `device_class`, `state_class`, and precision based on the template.

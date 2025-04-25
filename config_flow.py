@@ -9,8 +9,10 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_NAME
 from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
+from homeassistant.components.sensor import SensorDeviceClass
 
 from .const import (
     DOMAIN,
@@ -25,6 +27,7 @@ from .const import (
     SENSOR_TYPES,
     CONF_SLAVE_ID,
     FIRMWARE_VERSION,
+    CONF_ROOM_TEMPERATURE_ENTITY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,6 +50,11 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
+    
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        self._data = {}
+        self._options = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -108,18 +116,26 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if CONF_NAME not in user_input or not user_input[CONF_NAME]:
                 errors["base"] = "name_required"
             else:
-                # Extract options data before creating the entry
-                data = dict(user_input)
-                options = {}
+                # Speichere die Daten für den nächsten Schritt
+                self._data = dict(user_input)
+                self._options = {}
                 
+                # Prüfen, ob room_thermostat_control aktiviert wurde
+                if user_input.get("room_thermostat_control", False):
+                    # Move room_thermostat_control to options
+                    self._options["room_thermostat_control"] = self._data.pop("room_thermostat_control", False)
+                    # Wenn aktiviert, gehe zum Schritt für die Sensorauswahl
+                    return await self.async_step_room_sensor()
+                
+                # Wenn nicht aktiviert, erstelle den Eintrag direkt
                 # Move room_thermostat_control to options
-                if "room_thermostat_control" in data:
-                    options["room_thermostat_control"] = data.pop("room_thermostat_control")
+                if "room_thermostat_control" in self._data:
+                    self._options["room_thermostat_control"] = self._data.pop("room_thermostat_control", False)
                 
                 return self.async_create_entry(
-                    title=data[CONF_NAME],
-                    data=data,
-                    options=options
+                    title=self._data[CONF_NAME],
+                    data=self._data,
+                    options=self._options
                 )
         except CannotConnect:
             errors["base"] = "cannot_connect"
@@ -165,16 +181,92 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors
         )
 
+    async def async_step_room_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle the room sensor selection step."""
+        errors: dict[str, str] = {}
+        
+        # Anzahl der Heizkreise aus der Konfiguration holen
+        num_hc = self.config_entry.data.get("num_hc", 1)
+        
+        if user_input is not None:
+            try:
+                # Speichere die ausgewählten Entitäten in den Optionen
+                for hc_idx in range(1, num_hc + 1):
+                    entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
+                    # Nur speichern, wenn eine Auswahl getroffen wurde
+                    if entity_key in user_input and user_input[entity_key]:
+                        self.options[entity_key] = user_input[entity_key]
+                    # Wenn keine Auswahl getroffen wurde, entferne die Option falls vorhanden
+                    elif entity_key in self.options:
+                        del self.options[entity_key]
+                
+                # Erstelle den Config Entry mit den gesammelten Daten
+                return self.async_create_entry(title="", data=self.options)
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception in room sensor selection")
+                errors["base"] = "unknown"
+        
+        # Finde alle Temperatur-Entitäten, die nicht zur Lambda-Domain gehören
+        temp_entities = []
+        for entity_id in self.hass.states.async_entity_ids():
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                continue
+            
+            # Prüfe, ob es eine Temperatur-Entität ist und nicht zur Lambda-Domain gehört
+            domain = entity_id.split('.')[0]
+            if domain != DOMAIN and state.attributes.get("device_class") == SensorDeviceClass.TEMPERATURE:
+                temp_entities.append(entity_id)
+        
+        if not temp_entities:
+            # Wenn keine Temperatur-Entitäten gefunden wurden, zeige eine Fehlermeldung
+            errors["base"] = "no_temp_sensors"
+            return self.async_show_form(
+                step_id="room_sensor",
+                errors=errors
+            )
+        
+        # Schema für jeden Heizkreis erstellen
+        schema = {}
+        for hc_idx in range(1, num_hc + 1):
+            entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
+            schema[vol.Optional(
+                entity_key,
+                default=self.options.get(entity_key, "")
+            )] = EntitySelector(
+                EntitySelectorConfig(
+                    domain=["sensor", "climate", "weather"],
+                    device_class=SensorDeviceClass.TEMPERATURE,
+                    multiple=False,
+                    include_entities=temp_entities
+                )
+            )
+        
+        # Zeige das Formular zur Auswahl eines Temperatursensors für jeden Heizkreis
+        return self.async_show_form(
+            step_id="room_sensor",
+            data_schema=vol.Schema(schema),
+            errors=errors
+        )
+
     @staticmethod
     @config_entries.callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Create the options flow."""
-        return LambdaOptionsFlow()
+        return LambdaOptionsFlow(config_entry)
 
 class LambdaOptionsFlow(config_entries.OptionsFlow):
     """Handle options."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+        self.options = dict(config_entry.options)
+        self.room_thermostat_was_enabled = False
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -208,11 +300,17 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
                 options_data = {k: v for k, v in user_input.items() if k not in ("firmware_version")}
                 _LOGGER.debug("Options Flow - Nach Filterung: %s", options_data)
                 
-                # Stelle sicher, dass room_thermostat_control explizit im options_data ist
-                if "room_thermostat_control" in user_input:
-                    _LOGGER.debug("Explizites Setzen von room_thermostat_control auf: %s", 
-                              user_input["room_thermostat_control"])
-                    options_data["room_thermostat_control"] = user_input["room_thermostat_control"]
+                # Prüfe, ob room_thermostat_control jetzt aktiviert wurde
+                room_thermostat_control = user_input.get("room_thermostat_control", False)
+                was_enabled = self.config_entry.options.get("room_thermostat_control", False)
+                
+                # Speichere die aktuelle Auswahl
+                self.options = options_data
+                
+                # Wenn die Option gerade aktiviert wurde oder bereits aktiviert war, 
+                # aber die Entität geändert werden soll
+                if room_thermostat_control and (not was_enabled or self.room_thermostat_was_enabled):
+                    return await self.async_step_room_sensor()
                 
                 _LOGGER.debug("Finale Options: %s", options_data)
                 return self.async_create_entry(title="", data=options_data)
@@ -263,6 +361,76 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
+            data_schema=vol.Schema(schema),
+            errors=errors
+        )
+        
+    async def async_step_room_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle the room sensor selection step."""
+        errors: dict[str, str] = {}
+        
+        # Anzahl der Heizkreise aus der Konfiguration holen
+        num_hc = self.config_entry.data.get("num_hc", 1)
+        
+        if user_input is not None:
+            try:
+                # Speichere die ausgewählten Entitäten in den Optionen
+                for hc_idx in range(1, num_hc + 1):
+                    entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
+                    # Nur speichern, wenn eine Auswahl getroffen wurde
+                    if entity_key in user_input and user_input[entity_key]:
+                        self.options[entity_key] = user_input[entity_key]
+                    # Wenn keine Auswahl getroffen wurde, entferne die Option falls vorhanden
+                    elif entity_key in self.options:
+                        del self.options[entity_key]
+                
+                # Erstelle den Config Entry mit den gesammelten Daten
+                return self.async_create_entry(title="", data=self.options)
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception in room sensor selection")
+                errors["base"] = "unknown"
+        
+        # Finde alle Temperatur-Entitäten, die nicht zur Lambda-Domain gehören
+        temp_entities = []
+        for entity_id in self.hass.states.async_entity_ids():
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                continue
+            
+            # Prüfe, ob es eine Temperatur-Entität ist und nicht zur Lambda-Domain gehört
+            domain = entity_id.split('.')[0]
+            if domain != DOMAIN and state.attributes.get("device_class") == SensorDeviceClass.TEMPERATURE:
+                temp_entities.append(entity_id)
+        
+        if not temp_entities:
+            # Wenn keine Temperatur-Entitäten gefunden wurden, zeige eine Fehlermeldung
+            errors["base"] = "no_temp_sensors"
+            return self.async_show_form(
+                step_id="room_sensor",
+                errors=errors
+            )
+        
+        # Schema für jeden Heizkreis erstellen
+        schema = {}
+        for hc_idx in range(1, num_hc + 1):
+            entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
+            schema[vol.Optional(
+                entity_key,
+                default=self.options.get(entity_key, "")
+            )] = EntitySelector(
+                EntitySelectorConfig(
+                    domain=["sensor", "climate", "weather"],
+                    device_class=SensorDeviceClass.TEMPERATURE,
+                    multiple=False,
+                    include_entities=temp_entities
+                )
+            )
+        
+        # Zeige das Formular zur Auswahl eines Temperatursensors für jeden Heizkreis
+        return self.async_show_form(
+            step_id="room_sensor",
             data_schema=vol.Schema(schema),
             errors=errors
         )

@@ -9,6 +9,13 @@ DEFAULT_ROOM_THERMOSTAT_CONTROL = False
 
 # Konfigurationskonstanten
 CONF_SLAVE_ID = "slave_id"
+CONF_ROOM_TEMPERATURE_ENTITY = "room_temperature_entity_{0}"  # Formatstring für room_temperature_entity_1, _2, etc.
+
+# Modbus Register für Raumtemperatur-Basis (wird mit HC_BASE_ADDRESS kombiniert)
+ROOM_TEMPERATURE_REGISTER_OFFSET = 4  # Register-Offset für Raumtemperatur innerhalb eines HC
+
+# Intervall für die Aktualisierung der Raumtemperatur (in Minuten)
+ROOM_TEMPERATURE_UPDATE_INTERVAL = 1
 
 # Debug configuration
 DEBUG = False

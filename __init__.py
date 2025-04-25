@@ -12,6 +12,7 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 
 from .const import DOMAIN, DEBUG, DEBUG_PREFIX, LOG_LEVELS, SENSOR_TYPES
 from .coordinator import LambdaDataUpdateCoordinator
+from .services import async_setup_services, async_unload_services
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=30)
@@ -51,6 +52,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up all platforms
     await hass.config_entries.async_forward_entry_setups(entry, ["sensor", "climate"])
 
+    # Beim ersten Setup die Services registrieren
+    if len(hass.data[DOMAIN]) == 1:
+        await async_setup_services(hass)
+
     # Registriere Update-Listener
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
@@ -70,6 +75,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if coordinator and getattr(coordinator, "client", None):
             await hass.async_add_executor_job(coordinator.client.close)
         hass.data[DOMAIN].pop(entry.entry_id)
+        
+        # Wenn dies der letzte Entry war, entferne auch die Services
+        if not hass.data[DOMAIN]:
+            await async_unload_services(hass)
     else:
         _LOGGER.debug("Entry %s not in hass.data[%s], nothing to remove.", entry.entry_id, DOMAIN)
     return unload_ok

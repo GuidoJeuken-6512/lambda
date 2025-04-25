@@ -10,6 +10,7 @@ Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärm
 - Auslesen diverser Sensoren der Wärmepumpe (Temperaturen, Zustände, Energieverbrauch etc.)
 - Steuerung der Zieltemperatur für Warmwasser und Heizkreise über `climate`-Entitäten
 - Dynamische Anpassung der Sensoren und Entitäten basierend auf der Firmware-Version und der konfigurierten Anzahl von Wärmepumpen, Boilern und Heizkreisen
+- Raumthermostatsteuerung: Verwendung externer Temperatursensoren für jeden Heizkreis
 - Konfigurierbarer Update-Intervall
 - Konfiguration über die Home Assistant UI (Integrations)
 
@@ -20,10 +21,23 @@ Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärm
 **Konfiguration:**
 - Integration über die Home Assistant UI hinzufügen (`Einstellungen` → `Geräte & Dienste` → `Integration hinzufügen` → "Lambda WP")
 - Geben Sie Name, Host, Port, Slave ID, Firmware-Version und die Anzahl der Wärmepumpen, Boiler und Heizkreise an
+- Optional: Aktivieren Sie die Raumthermostatsteuerung, um externe Temperatursensoren für jeden Heizkreis zu verwenden
 - Nach der Einrichtung können Temperaturbereiche und Update-Intervall über die Optionen angepasst werden
 
-**Bekannte Probleme / TODO:**
-- Die Übersetzung in andere Sprachen
+**Raumthermostatsteuerung:**
+- Ermöglicht die Verwendung eines externen Temperatursensors für jeden Heizkreis
+- Der Sensorwert wird an die Lambda Wärmepumpe übermittelt und für die Regelung verwendet
+- Aktivierung der Funktion in den Integrationseinstellungen
+- Auswahl eines Temperatursensors pro Heizkreis
+
+**Hinweise für Home Assistant 2025.3:**
+- Diese Integration ist vollständig kompatibel mit Home Assistant 2025.3
+- Verwendet den neuen DataUpdateCoordinator für optimale Leistung
+- Typisierung und async/await nach den neuesten Standards
+- Verbesserte Fehlerbehandlung und Logging
+
+**Bekannte Probleme:**
+- Die Übersetzung in andere Sprachen (außer Deutsch und Englisch)
 
 ---
 
@@ -35,6 +49,7 @@ This custom integration allows you to connect Lambda heat pumps to Home Assistan
 - Reads various heat pump sensors (temperatures, states, energy consumption, etc.)
 - Control of target temperature for hot water and heating circuits via `climate` entities
 - Dynamic adaptation of sensors and entities based on firmware version and configured number of heat pumps, boilers, and heating circuits
+- Room thermostat control: Use external temperature sensors for each heating circuit
 - Configurable update interval
 - Configuration via the Home Assistant UI (Integrations)
 
@@ -45,10 +60,23 @@ This custom integration allows you to connect Lambda heat pumps to Home Assistan
 **Configuration:**
 - Add the integration via the Home Assistant UI (`Settings` → `Devices & Services` → `Add Integration` → "Lambda WP")
 - Enter name, host, port, slave ID, firmware version, and the number of heat pumps, boilers, and heating circuits
+- Optional: Enable room thermostat control to use external temperature sensors for each heating circuit
 - After setup, temperature ranges and update interval can be adjusted via the options
 
-**Known Issues / TODO:**
-- Translation to other languages
+**Room Thermostat Control:**
+- Allows using an external temperature sensor for each heating circuit
+- The sensor value is sent to the Lambda heat pump and used for regulation
+- Activation of this feature in the integration settings
+- Selection of a temperature sensor per heating circuit
+
+**Notes for Home Assistant 2025.3:**
+- This integration is fully compatible with Home Assistant 2025.3
+- Uses the new DataUpdateCoordinator for optimal performance
+- Typing and async/await according to the latest standards
+- Improved error handling and logging
+
+**Known Issues:**
+- Translation to other languages (besides German and English)
 
 ---
 
