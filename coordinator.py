@@ -15,11 +15,17 @@ class LambdaDataUpdateCoordinator(DataUpdateCoordinator):
     
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry):
         """Initialize."""
+        # Lese update_interval aus den Optionen, falls vorhanden
+        update_interval = entry.options.get("update_interval", 30)
+        _LOGGER.debug("Update interval from options: %s seconds", update_interval)
+        _LOGGER.debug("Entry options: %s", entry.options)
+        _LOGGER.debug("Room thermostat control: %s", entry.options.get("room_thermostat_control", "nicht gefunden"))
+
         super().__init__(
             hass,
             _LOGGER,
             name="Lambda Coordinator",
-            update_interval=SCAN_INTERVAL
+            update_interval=timedelta(seconds=update_interval)
         )
         self.host = entry.data["host"]
         self.port = entry.data["port"]

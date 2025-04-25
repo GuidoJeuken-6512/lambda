@@ -16,6 +16,9 @@ from .coordinator import LambdaDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=30)
 
+# Diese Konstante teilt Home Assistant mit, dass die Integration Übersetzungen hat
+TRANSLATION_SOURCES = {DOMAIN: "translations"}
+
 def setup_debug_logging(hass: HomeAssistant, config: ConfigType) -> None:
     """Set up debug logging for the integration."""
     if config.get("debug", False):

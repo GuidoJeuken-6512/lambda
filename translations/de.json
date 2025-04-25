@@ -13,7 +13,8 @@
           "debug_mode": "Debug-Modus",
           "num_hps": "Anzahl der Wärmepumpen",
           "num_boil": "Anzahl der Warmwasser Speicher",
-          "num_hc": "Anzahl der Heizkreise"
+          "num_hc": "Anzahl der Heizkreise",
+          "room_thermostat_control": "Raumthermostat-Steuerung"
         }
       }
     },
@@ -31,7 +32,8 @@
             "heating_circuit_min_temp": "Heizkreis Mindesttemperatur",
             "heating_circuit_max_temp": "Heizkreis Maximaltemperatur",
             "update_interval": "Update-Intervall (Sekunden)",
-            "firmware_version": "Firmware-Versionen"
+            "firmware_version": "Firmware-Versionen",
+            "room_thermostat_control": "Raumthermostat-Steuerung"
           }
         }
       }

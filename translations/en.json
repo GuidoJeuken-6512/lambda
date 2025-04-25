@@ -11,7 +11,10 @@
           "slave_id": "Slave ID",
           "firmware_version": "Firmware Version",
           "debug_mode": "Debug Mode",
-          "num_hps": "Number of heat pumps"
+          "num_hps": "Number of heat pumps",
+          "num_boil": "Number of hot water boilers",
+          "num_hc": "Number of heating circuits",
+          "room_thermostat_control": "Room Thermostat Control"
         }
       }
     },
@@ -29,7 +32,8 @@
             "heating_circuit_min_temp": "Heating Circuit Min Temperature",
             "heating_circuit_max_temp": "Heating Circuit Max Temperature",
             "update_interval": "Update Interval (seconds)",
-            "firmware_version": "Firmware Versions"
+            "firmware_version": "Firmware Versions",
+            "room_thermostat_control": "Room Thermostat Control"
           }
         }
       }
@@ -45,8 +49,8 @@
     "set_temperature": "Set Temperature",
     "hvac_mode_heat": "Heat",
     "hvac_modes": "Modes",
-    "error_set_temp_failed": "Failed to set target temperature.",
-    "room_thermostat_control": "Room Thermostat Control",
-    "room_thermostat_control_tooltip": "This enables room thermostat control for the Lambda heat pump. Please refer to the help if needed."
-  }
+    "error_set_temp_failed": "Failed to set target temperature."
+  },
+  "room_thermostat_control": "Room Thermostat Control",
+  "room_thermostat_control_tooltip": "This enables room thermostat control for the Lambda heat pump. Please refer to the help if needed."
 }

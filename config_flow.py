@@ -19,6 +19,7 @@ from .const import (
     DEFAULT_SLAVE_ID,
     DEFAULT_HOST,
     DEFAULT_FIRMWARE,
+    DEFAULT_ROOM_THERMOSTAT_CONTROL,
     DEBUG,
     LOG_LEVELS,
     SENSOR_TYPES,
@@ -88,11 +89,7 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         ): int,
                         vol.Optional(
                             "room_thermostat_control",
-                            default=user_input.get("room_thermostat_control", existing_data.get("room_thermostat_control", False)),
-                            description={
-                                "suggested_value": False,
-                                "description": "{room_thermostat_control_tooltip}"
-                            }
+                            default=user_input.get("room_thermostat_control", existing_data.get("room_thermostat_control", DEFAULT_ROOM_THERMOSTAT_CONTROL))
                         ): bool,
                         vol.Optional(
                             "firmware_version",
@@ -100,10 +97,7 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         ): vol.In(firmware_options),
                     }
                 ),
-                errors=errors,
-                description_placeholders={
-                    "room_thermostat_control_tooltip": "room_thermostat_control_tooltip"
-                }
+                errors=errors
             )
 
         try:
@@ -114,8 +108,18 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if CONF_NAME not in user_input or not user_input[CONF_NAME]:
                 errors["base"] = "name_required"
             else:
+                # Extract options data before creating the entry
+                data = dict(user_input)
+                options = {}
+                
+                # Move room_thermostat_control to options
+                if "room_thermostat_control" in data:
+                    options["room_thermostat_control"] = data.pop("room_thermostat_control")
+                
                 return self.async_create_entry(
-                    title=user_input[CONF_NAME], data=user_input
+                    title=data[CONF_NAME],
+                    data=data,
+                    options=options
                 )
         except CannotConnect:
             errors["base"] = "cannot_connect"
@@ -150,11 +154,7 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): int,
                     vol.Optional(
                         "room_thermostat_control",
-                        default=user_input.get("room_thermostat_control", existing_data.get("room_thermostat_control", False)),
-                        description={
-                            "suggested_value": False,
-                            "description": "{room_thermostat_control_tooltip}"
-                        }
+                        default=user_input.get("room_thermostat_control", existing_data.get("room_thermostat_control", DEFAULT_ROOM_THERMOSTAT_CONTROL))
                     ): bool,
                     vol.Optional(
                         "firmware_version",
@@ -162,10 +162,7 @@ class LambdaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): vol.In(firmware_options),
                 }
             ),
-            errors=errors,
-            description_placeholders={
-                "room_thermostat_control_tooltip": "room_thermostat_control_tooltip"
-            }
+            errors=errors
         )
 
     @staticmethod
@@ -186,24 +183,39 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
+                _LOGGER.debug("Options Flow - Empfangener user_input: %s", user_input)
+                _LOGGER.debug("Options Flow - Aktuelle Optionen: %s", self.config_entry.options)
+                _LOGGER.debug("Options Flow - room_thermostat_control in user_input: %s", 
+                          "room_thermostat_control" in user_input)
+                _LOGGER.debug("Options Flow - room_thermostat_control Wert: %s", 
+                          user_input.get("room_thermostat_control"))
+                
                 update_data = False
                 new_data = dict(self.config_entry.data)
                 # Firmware-Version
                 if "firmware_version" in user_input and user_input["firmware_version"] != self.config_entry.data.get("firmware_version"):
                     new_data["firmware_version"] = user_input["firmware_version"]
                     update_data = True
-                # Room Thermostat Control
-                if "room_thermostat_control" in user_input and user_input["room_thermostat_control"] != self.config_entry.data.get("room_thermostat_control", False):
-                    new_data["room_thermostat_control"] = user_input["room_thermostat_control"]
-                    update_data = True
+                
                 if update_data:
+                    _LOGGER.debug("Updating config entry data: %s", new_data)
                     self.hass.config_entries.async_update_entry(
                         self.config_entry,
                         data=new_data
                     )
+                
                 # Entferne die Felder aus den Options, die in data gespeichert werden
-                user_input = {k: v for k, v in user_input.items() if k not in ("firmware_version", "room_thermostat_control")}
-                return self.async_create_entry(title="", data=user_input)
+                options_data = {k: v for k, v in user_input.items() if k not in ("firmware_version")}
+                _LOGGER.debug("Options Flow - Nach Filterung: %s", options_data)
+                
+                # Stelle sicher, dass room_thermostat_control explizit im options_data ist
+                if "room_thermostat_control" in user_input:
+                    _LOGGER.debug("Explizites Setzen von room_thermostat_control auf: %s", 
+                              user_input["room_thermostat_control"])
+                    options_data["room_thermostat_control"] = user_input["room_thermostat_control"]
+                
+                _LOGGER.debug("Finale Options: %s", options_data)
+                return self.async_create_entry(title="", data=options_data)
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except Exception:
@@ -212,6 +224,11 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
 
         options = self.config_entry.options
         firmware_options = list(FIRMWARE_VERSION.keys())
+
+        # Debug für room_thermostat_control
+        current_rtc = options.get("room_thermostat_control", DEFAULT_ROOM_THERMOSTAT_CONTROL)
+        _LOGGER.debug("Aktueller Wert von room_thermostat_control in options: %s", current_rtc)
+        _LOGGER.debug("DEFAULT_ROOM_THERMOSTAT_CONTROL: %s", DEFAULT_ROOM_THERMOSTAT_CONTROL)
 
         schema = {
             vol.Optional(
@@ -236,11 +253,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
             ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
             vol.Optional(
                 "room_thermostat_control",
-                default=options.get("room_thermostat_control", False),
-                description={
-                    "suggested_value": False,
-                    "description": "{room_thermostat_control_tooltip}"
-                }
+                default=options.get("room_thermostat_control", DEFAULT_ROOM_THERMOSTAT_CONTROL)
             ): bool,
             vol.Optional(
                 "firmware_version",
@@ -251,10 +264,7 @@ class LambdaOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(schema),
-            errors=errors,
-            description_placeholders={
-                "room_thermostat_control_tooltip": "room_thermostat_control_tooltip"
-            },
+            errors=errors
         )
 
     async def _test_connection(self, user_input: dict[str, Any]) -> None:
