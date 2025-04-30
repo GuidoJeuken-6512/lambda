@@ -31,17 +31,18 @@ Die Integration bietet eine Raumthermostatsteuerung, die es ermöglicht, externe
 - Die Wärmepumpe verwendet diese Werte anstelle ihrer internen Messungen für die Heizkreisregelung
 - Die Übertragung erfolgt automatisch in regelmäßigen Intervallen (konfiguriert über `ROOM_TEMPERATURE_UPDATE_INTERVAL`)
 
-## Home Assistant 2025.3 Kompatibilität
+## Zentrale Firmware- und Sensor-Filterung
+- Die Firmware-Version kann nachträglich im Options-Dialog geändert werden und triggert ein vollständiges Reload (inkl. Filterung der Sensoren und Entitäten).
+- Sensoren und Entitäten werden **zentral** nach Firmware gefiltert (siehe `utils.py`).
+- Temperaturbereiche, Schritte und Firmware-Version sind jederzeit im Options-Dialog konfigurierbar.
+- Initialwerte für Sensoren (z.B. Dummy) können in const.py gesetzt werden.
+- Beim Speichern der Konfiguration und Optionen werden die geschriebenen Werte im Home Assistant Log (DEBUG) ausgegeben.
 
-Die Integration wurde für Home Assistant 2025.3 optimiert:
-
-- Verwendung des neuesten `DataUpdateCoordinator`-Patterns für effiziente Datenaktualisierung
-- Korrekte Typisierung aller Methoden und Variablen mit Python-Typannotationen
-- Konsequente Verwendung von `async`/`await` für nicht-blockierende Operationen
-- Verbesserte Fehlerbehandlung nach Home Assistant-Standards
-- Moderne Konfigurationsflüsse mit `vol.Schema`
-- Optimierte Übersetzungen im neuen Format
-- Effizientes Ressourcenmanagement durch automatische Entladung ungenutzter Komponenten
+## Home Assistant 2025.3 Kompatibilität (aktualisiert)
+- Moderne Konfigurations- und Options-Flows
+- Zentrale Filterfunktion für Firmware-Kompatibilität (`get_compatible_sensors` in utils.py)
+- Debug-Logging beim Speichern der Konfiguration/Optionen
+- Alle Features und Optionen sind vollständig UI-basiert konfigurierbar
 
 ## Workflow
 

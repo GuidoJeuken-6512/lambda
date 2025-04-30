@@ -85,4 +85,9 @@ All new sensors are available from firmware version 1 onwards.
 ## Error Handling
 - Invalid or unavailable sensor values are reported as errors
 - State sensors with unknown states will report "unknown"
-- Temperature sensors with invalid readings will report "unavailable" 
+- Temperature sensors with invalid readings will report "unavailable"
+
+## Central Filtering and Options
+- Sensors are only shown if they are compatible with the selected firmware version (central filtering via `utils.py`).
+- Firmware version and temperature ranges are configurable at any time in the options dialog.
+- Initial values for sensors (e.g. dummy) can be set in const.py. 

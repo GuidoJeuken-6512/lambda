@@ -31,17 +31,18 @@ The integration offers room thermostat control, which allows using external temp
 - The heat pump uses these values instead of its internal measurements for heating circuit control
 - The transmission occurs automatically at regular intervals (configured via `ROOM_TEMPERATURE_UPDATE_INTERVAL`)
 
-## Home Assistant 2025.3 Compatibility
+## Central Firmware and Sensor Filtering
+- The firmware version can be changed later in the options dialog and triggers a full reload (including filtering of sensors and entities).
+- Sensors and entities are **centrally** filtered by firmware (see `utils.py`).
+- Temperature ranges, steps, and firmware version are configurable at any time in the options dialog.
+- Initial values for sensors (e.g. dummy) can be set in const.py.
+- When saving configuration and options, the written values are output to the Home Assistant log (DEBUG).
 
-The integration has been optimized for Home Assistant 2025.3:
-
-- Use of the latest `DataUpdateCoordinator` pattern for efficient data updates
-- Proper typing of all methods and variables with Python type annotations
-- Consistent use of `async`/`await` for non-blocking operations
-- Improved error handling according to Home Assistant standards
-- Modern configuration flows with `vol.Schema`
-- Optimized translations in the new format
-- Efficient resource management through automatic unloading of unused components
+## Home Assistant 2025.3 Compatibility (updated)
+- Modern configuration and options flows
+- Central filter function for firmware compatibility (`get_compatible_sensors` in utils.py)
+- Debug logging when saving configuration/options
+- All features and options are fully UI-configurable
 
 ## Workflow
 

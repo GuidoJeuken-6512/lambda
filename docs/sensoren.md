@@ -85,4 +85,9 @@ Alle neuen Sensoren sind ab Firmware-Version 1 verfügbar.
 ## Fehlerbehandlung
 - Ungültige oder nicht verfügbare Sensorwerte werden als Fehler gemeldet
 - Zustandssensoren mit unbekannten Zuständen melden "unbekannt"
-- Temperatursensoren mit ungültigen Messwerten melden "nicht verfügbar" 
+- Temperatursensoren mit ungültigen Messwerten melden "nicht verfügbar"
+
+## Zentrale Filterung und Optionen
+- Sensoren werden nur angezeigt, wenn sie mit der gewählten Firmware-Version kompatibel sind (zentrale Filterung über `utils.py`).
+- Die Firmware-Version und Temperaturbereiche sind jederzeit im Options-Dialog konfigurierbar.
+- Initialwerte für Sensoren (z.B. Dummy) können in const.py gesetzt werden. 
