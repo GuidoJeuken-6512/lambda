@@ -158,14 +158,17 @@ BOIL_OPERATING_STATE = {
 }
 
 # Buffer States
-BUFFER_OPERATING_STATE = {
-    0: "Standby",
-    1: "Heating",
-    2: "Cooling",
-    3: "Error",
-    4: "Off",
-    5: "Frost Protection",
-    6: "Temperature Lock"
+BUFFER_OPERATION_STATE = {
+    0: "STBY",
+    1: "HEATING",
+    2: "COOLING",
+    3: "SUMMER",
+    4: "FROST",
+    5: "HOLIDAY",
+    6: "PRIO-STOP",
+    7: "ERROR",
+    8: "OFF",
+    9: "STBY-FROST"
 }
 
 # Solar States
@@ -872,8 +875,28 @@ SENSOR_TYPES = {
         "firmware_version": 1,
         "device_type": "main",
     },
+    "emgr_error_number": {
+        "address": 100,
+        "name": "E-Manager Error Number",
+        "unit": None,
+        "scale": 1,
+        "precision": 0,
+        "data_type": "int16",
+        "firmware_version": 1,
+        "device_type": "main",
+    },
+    "emgr_operating_state": {
+        "address": 101,
+        "name": "E-Manager Operating State",
+        "unit": None,
+        "scale": 1,
+        "precision": 0,
+        "data_type": "uint16",
+        "firmware_version": 1,
+        "device_type": "main",
+    },
     "emgr_actual_power": {
-        "address": 102,  # Beispiel-Adresse, muss angepasst werden
+        "address": 102,
         "name": "E-Manager Actual Power",
         "unit": "W",
         "scale": 1,
@@ -883,7 +906,7 @@ SENSOR_TYPES = {
         "device_type": "main",
     },
     "emgr_actual_power_consumption": {
-        "address": 103,  # Beispiel-Adresse, muss angepasst werden
+        "address": 103,
         "name": "E-Manager Power Consumption",
         "unit": "W",
         "scale": 1,
@@ -893,7 +916,7 @@ SENSOR_TYPES = {
         "device_type": "main",
     },
     "emgr_power_consumption_setpoint": {
-        "address": 104,  # Beispiel-Adresse, muss angepasst werden
+        "address": 104,
         "name": "E-Manager Power Consumption Setpoint",
         "unit": "W",
         "scale": 1,
@@ -911,4 +934,24 @@ ROOM_TEMPERATURE_UPDATE_INTERVAL = 1  # Update interval for room temperature (in
 DEFAULT_HEATING_CIRCUIT_MIN_TEMP = 15
 DEFAULT_HEATING_CIRCUIT_MAX_TEMP = 35
 DEFAULT_HEATING_CIRCUIT_TEMP_STEP = 0.5
+
+CIRCULATION_PUMP_STATE = {
+    0: "OFF",
+    1: "ON"
+}
+
+SOLAR_OPERATION_STATE = {
+    0: "STBY",
+    1: "HEATING",
+    2: "ERROR",
+    3: "OFF"
+}
+
+BUFFER_REQUEST_TYPE = {
+    -1: "INVALID REQUEST",
+    0: "NO REQUEST",
+    1: "FLOW PUMP CIRCULATION",
+    2: "CENTRAL HEATING",
+    3: "CENTRAL COOLING"
+}
 

@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS, BOIL_SENSOR_TEMPLATES, BOIL_BASE_ADDRESS, HC_SENSOR_TEMPLATES, HC_BASE_ADDRESS
+from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS, BOIL_SENSOR_TEMPLATES, BOIL_BASE_ADDRESS, HC_SENSOR_TEMPLATES, HC_BASE_ADDRESS, BUFFER_SENSOR_TEMPLATES, BUFFER_BASE_ADDRESS, SOLAR_SENSOR_TEMPLATES, SOLAR_BASE_ADDRESS, SOLAR_OPERATION_STATE, BUFFER_OPERATION_STATE, BUFFER_REQUEST_TYPE
 from .utils import get_compatible_sensors
 
 _LOGGER = logging.getLogger(__name__)
@@ -141,6 +141,50 @@ async def async_setup_entry(
                 )
             )
     _LOGGER.debug("Total number of dynamic HC sensors created: %d", len(entities) - len(compatible_static_sensors) - num_hps * len(compatible_hp_templates) - num_boil * len(compatible_boil_templates))
+
+    # Dynamische Generierung der Buffer-Sensoren
+    compatible_buffer_templates = get_compatible_sensors(BUFFER_SENSOR_TEMPLATES, fw_version)
+    num_buffer = entry.data.get("num_buffer", 1)
+    _LOGGER.debug("Starting dynamic sensor generation for %d buffer modules", num_buffer)
+    for buffer_idx in range(1, num_buffer + 1):
+        for template_key, template in compatible_buffer_templates.items():
+            sensor_id = f"buffer{buffer_idx}_{template_key}"
+            address = BUFFER_BASE_ADDRESS.get(buffer_idx, 3000) + template["relative_address"]
+            sensor_config = template.copy()
+            sensor_config["address"] = address
+            sensor_config["name"] = f"{name_prefix.upper()} Buffer{buffer_idx} {template['name']}"
+            _LOGGER.debug("Creating buffer sensor: %s at address: %d", sensor_id, address)
+            entities.append(
+                LambdaSensor(
+                    coordinator=coordinator,
+                    entry=entry,
+                    sensor_id=sensor_id,
+                    sensor_config=sensor_config,
+                )
+            )
+    _LOGGER.debug("Total number of dynamic Buffer sensors created: %d", len(entities) - len(compatible_static_sensors) - num_hps * len(compatible_hp_templates) - num_boil * len(compatible_boil_templates) - num_hc * len(compatible_hc_templates))
+
+    # Dynamische Generierung der Solar-Sensoren
+    compatible_solar_templates = get_compatible_sensors(SOLAR_SENSOR_TEMPLATES, fw_version)
+    num_solar = entry.data.get("num_solar", 1)
+    _LOGGER.debug("Starting dynamic sensor generation for %d solar modules", num_solar)
+    for solar_idx in range(1, num_solar + 1):
+        for template_key, template in compatible_solar_templates.items():
+            sensor_id = f"solar{solar_idx}_{template_key}"
+            address = SOLAR_BASE_ADDRESS.get(solar_idx, 4000) + template["relative_address"]
+            sensor_config = template.copy()
+            sensor_config["address"] = address
+            sensor_config["name"] = f"{name_prefix.upper()} Solar{solar_idx} {template['name']}"
+            _LOGGER.debug("Creating solar sensor: %s at address: %d", sensor_id, address)
+            entities.append(
+                LambdaSensor(
+                    coordinator=coordinator,
+                    entry=entry,
+                    sensor_id=sensor_id,
+                    sensor_config=sensor_config,
+                )
+            )
+    _LOGGER.debug("Total number of dynamic Solar sensors created: %d", len(entities) - len(compatible_static_sensors) - num_hps * len(compatible_hp_templates) - num_boil * len(compatible_boil_templates) - num_hc * len(compatible_hc_templates) - num_buffer * len(compatible_buffer_templates))
     
     async_add_entities(entities)
 
@@ -225,6 +269,10 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
                 BOIL_OPERATING_STATE,
                 HC_OPERATING_STATE,
                 HC_OPERATING_MODE,
+                CIRCULATION_PUMP_STATE,
+                SOLAR_OPERATION_STATE,
+                BUFFER_OPERATION_STATE,
+                BUFFER_REQUEST_TYPE,
             )
 
             # Ensure value is an integer for state mapping
@@ -239,6 +287,14 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
                 state_mapping = AMBIENT_OPERATING_STATE
             elif "emgr_operating_state" in self._sensor_id:
                 state_mapping = EMGR_OPERATING_STATE
+            elif "actual_circulation_pump_state" in self._sensor_id:
+                state_mapping = CIRCULATION_PUMP_STATE
+            elif "operating_state" in self._sensor_id and "solar" in self._sensor_id:
+                state_mapping = SOLAR_OPERATION_STATE
+            elif "operating_state" in self._sensor_id and "buffer" in self._sensor_id:
+                state_mapping = BUFFER_OPERATION_STATE
+            elif "request_type" in self._sensor_id and "buffer" in self._sensor_id:
+                state_mapping = BUFFER_REQUEST_TYPE
             elif "error_state" in self._sensor_id:
                 state_mapping = HP_ERROR_STATE
             elif "_state" in self._sensor_id:
@@ -250,8 +306,6 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
                     state_mapping = BOIL_OPERATING_STATE
                 elif "hc" in self._sensor_id:
                     state_mapping = HC_OPERATING_STATE
-            elif "request_type" in self._sensor_id:
-                state_mapping = HP_REQUEST_TYPE
             elif "operating_mode" in self._sensor_id:
                 state_mapping = HC_OPERATING_MODE
 
@@ -318,6 +372,26 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
             return {
                 "identifiers": {(DOMAIN, f"{self._entry.entry_id}_hc{idx}")},
                 "name": f"Heating Circuit {idx}",
+                "manufacturer": "Lambda",
+                "model": self._entry.data.get("firmware_version", "unknown"),
+                "via_device": (DOMAIN, self._entry.entry_id),
+                "entry_type": "service"
+            }
+        if device_type == "buffer":
+            idx = self._sensor_id[6]
+            return {
+                "identifiers": {(DOMAIN, f"{self._entry.entry_id}_buffer{idx}")},
+                "name": f"Buffer {idx}",
+                "manufacturer": "Lambda",
+                "model": self._entry.data.get("firmware_version", "unknown"),
+                "via_device": (DOMAIN, self._entry.entry_id),
+                "entry_type": "service"
+            }
+        if device_type == "solar":
+            idx = self._sensor_id[5]
+            return {
+                "identifiers": {(DOMAIN, f"{self._entry.entry_id}_solar{idx}")},
+                "name": f"Solar {idx}",
                 "manufacturer": "Lambda",
                 "model": self._entry.data.get("firmware_version", "unknown"),
                 "via_device": (DOMAIN, self._entry.entry_id),
