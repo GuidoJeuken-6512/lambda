@@ -1,7 +1,4 @@
-## Übersetzungen funktioniern nicht sauber.
 
-## die status sensoren in texte übersetzten.
-    
 ############# in this yaml the status sensors of the Lambda are transcribed into texts
 sensor:
   

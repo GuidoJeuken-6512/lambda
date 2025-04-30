@@ -1,0 +1,44 @@
+entity_id	original_name	unique_id	friendly_name	modbus_register
+sensor.eu08l_ambient_error_number	EU08L Ambient Error Number	ambient_error_number	EU08L Ambient Error Number	0
+sensor.eu08l_ambient_operating_state	EU08L Ambient Operating State	ambient_operating_state	EU08L Ambient Operating State	1
+sensor.eu08l_ambient_temperature	EU08L Ambient Temperature	ambient_temperature	EU08L Ambient Temperature	2
+sensor.eu08l_ambient_temperature_1h	EU08L Ambient Temperature 1h	ambient_temperature_1h	EU08L Ambient Temperature 1h	3
+sensor.eu08l_ambient_temperature_calculated	EU08L Ambient Temperature Calculated	ambient_temperature_calculated	EU08L Ambient Temperature Calculated	4
+sensor.eu08l_hp1_error_state	EU08L HP1 Error State	hp1_error_state	EU08L HP1 Error State	1000
+sensor.eu08l_hp1_error_number	EU08L HP1 Error Number	hp1_error_number	EU08L HP1 Error Number	1001
+sensor.eu08l_hp1_state	EU08L HP1 State	hp1_state	EU08L HP1 State	1002
+sensor.eu08l_hp1_operating_state	EU08L HP1 Operating State	hp1_operating_state	EU08L HP1 Operating State	1003
+sensor.eu08l_hp1_flow_line_temperature	EU08L HP1 Flow Line Temperature	hp1_flow_line_temperature	EU08L HP1 Flow Line Temperature	1004
+sensor.eu08l_hp1_return_line_temperature	EU08L HP1 Return Line Temperature	hp1_return_line_temperature	EU08L HP1 Return Line Temperature	1005
+sensor.eu08l_hp1_volume_flow_heat_sink	EU08L HP1 Volume Flow Heat Sink	hp1_volume_flow_heat_sink	EU08L HP1 Volume Flow Heat Sink	1006
+sensor.eu08l_hp1_energy_source_inlet_temperature	EU08L HP1 Energy Source Inlet Temperature	hp1_energy_source_inlet_temperature	EU08L HP1 Energy Source Inlet Temperature	1007
+sensor.eu08l_hp1_energy_source_outlet_temperature	EU08L HP1 Energy Source Outlet Temperature	hp1_energy_source_outlet_temperature	EU08L HP1 Energy Source Outlet Temperature	1008
+sensor.eu08l_hp1_volume_flow_energy_source	EU08L HP1 Volume Flow Energy Source	hp1_volume_flow_energy_source	EU08L HP1 Volume Flow Energy Source	1009
+sensor.eu08l_hp1_compressor_unit_rating	EU08L HP1 Compressor Unit Rating	hp1_compressor_unit_rating	EU08L HP1 Compressor Unit Rating	1010
+sensor.eu08l_hp1_actual_heating_capacity	EU08L HP1 Actual Heating Capacity	hp1_actual_heating_capacity	EU08L HP1 Actual Heating Capacity	1011
+sensor.eu08l_hp1_inverter_power_consumption	EU08L HP1 Inverter Power Consumption	hp1_inverter_power_consumption	EU08L HP1 Inverter Power Consumption	1012
+sensor.eu08l_hp1_cop	EU08L HP1 COP	hp1_cop	EU08L HP1 COP	1013
+sensor.eu08l_hp1_request_type	EU08L HP1 Request-Type	hp1_request_type	EU08L HP1 Request-Type	1015
+sensor.eu08l_hp1_requested_flow_line_temperature	EU08L HP1 Requested Flow Line Temperature	hp1_requested_flow_line_temperature	EU08L HP1 Requested Flow Line Temperature	1016
+sensor.eu08l_hp1_requested_return_line_temperature	EU08L HP1 Requested Return Line Temperature	hp1_requested_return_line_temperature	EU08L HP1 Requested Return Line Temperature	1017
+sensor.eu08l_hp1_requested_flow_to_return_line_temperature_difference	EU08L HP1 Requested Flow to Return Line Temperature Difference	hp1_requested_flow_to_return_line_temperature_difference	EU08L HP1 Requested Flow to Return Line Temperature Difference	1018
+sensor.eu08l_hp1_relais_state_2nd_heating_stage	EU08L HP1 Relais State 2nd Heating Stage	hp1_relais_state_2nd_heating_stage	EU08L HP1 Relais State 2nd Heating Stage	1019
+sensor.eu08l_hp1_compressor_power_consumption_accumulated	EU08L HP1 Compressor Power Consumption Accumulated	hp1_compressor_power_consumption_accumulated	EU08L HP1 Compressor Power Consumption Accumulated	1020
+sensor.eu08l_hp1_compressor_thermal_energy_output_accumulated	EU08L HP1 Compressor Thermal Energy Output Accumulated	hp1_compressor_thermal_energy_output_accumulated	EU08L HP1 Compressor Thermal Energy Output Accumulated	1022
+sensor.eu08l_boil1_error_number	EU08L Boil1 Error Number	boil1_error_number	EU08L Boil1 Error Number	2000
+sensor.eu08l_boil1_operating_state	EU08L Boil1 Operating State	boil1_operating_state	EU08L Boil1 Operating State	2001
+sensor.eu08l_boil1_actual_high_temperature	EU08L Boil1 Actual High Temperature	boil1_actual_high_temperature	EU08L Boil1 Actual High Temperature	2002
+sensor.eu08l_boil1_actual_low_temperature	EU08L Boil1 Actual Low Temperature	boil1_actual_low_temperature	EU08L Boil1 Actual Low Temperature	2003
+sensor.eu08l_boil1_target_high_temperature	EU08L Boil1 Target High Temperature	boil1_target_high_temperature	EU08L Boil1 Target High Temperature	2050
+sensor.eu08l_hc1_error_number	EU08L HC1 Heating Circuit Error Number	hc1_error_number	EU08L HC1 Heating Circuit Error Number	5000
+sensor.eu08l_hc1_operating_state	EU08L HC1 Heating Circuit Operating State	hc1_operating_state	EU08L HC1 Heating Circuit Operating State	5001
+sensor.eu08l_hc1_flow_line_temperature	EU08L HC1 Flow Line Temperature	hc1_flow_line_temperature	EU08L HC1 Flow Line Temperature	5002
+sensor.eu08l_hc1_return_line_temperature	EU08L HC1 Return Line Temperature	hc1_return_line_temperature	EU08L HC1 Return Line Temperature	5003
+sensor.eu08l_hc1_room_device_temperature	EU08L HC1 Room Device Temperature	hc1_room_device_temperature	EU08L HC1 Room Device Temperature	5004
+sensor.eu08l_hc1_set_flow_line_temperature	EU08L HC1 Set Flow Line Temperature	hc1_set_flow_line_temperature	EU08L HC1 Set Flow Line Temperature	5005
+sensor.eu08l_hc1_operating_mode	EU08L HC1 Operating Mode	hc1_operating_mode	EU08L HC1 Operating Mode	5006
+sensor.eu08l_hc1_set_flow_line_offset_temperature	EU08L HC1 Set Flow Line Offset Temperature	hc1_set_flow_line_offset_temperature	EU08L HC1 Set Flow Line Offset Temperature	5050
+sensor.eu08l_hc1_target_room_temperature	EU08L HC1 Target Room Temperature	hc1_target_room_temperature	EU08L HC1 Target Room Temperature	5051
+sensor.eu08l_hc1_set_cooling_mode_room_temperature	EU08L HC1 Set Cooling Mode Room Temperature	hc1_set_cooling_mode_room_temperature	EU08L HC1 Set Cooling Mode Room Temperature	5052
+climate.eu08l_boil1_climate	EU08L Boil1	eu08l_boil1_climate	EU08L Boil1	2050
+climate.eu08l_hc1_climate	EU08L HC 1	eu08l_hc1_climate	EU08L HC 1	5051
