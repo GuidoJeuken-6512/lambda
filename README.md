@@ -20,7 +20,18 @@ Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärm
 
 **Installation:**
 1. Kopieren Sie den gesamten Ordner `lambda` in Ihren `custom_components` Ordner innerhalb Ihres Home Assistant Konfigurationsverzeichnisses.
+Die Ordner
+- .cursor
+- .github
+- .vscode
+können gelöscht werden. Sie sind für die Weiterentwicklung hilfreich.
+Der Ordner "docs" enthält die Dokumentation, er kann auch gelöscht werden.
+Alle nicht benötigten Ordner stören die Integration aber nicht.
+
 2. Starten Sie Home Assistant neu.
+
+Eine weitergehende Beschreibung der Installation und Konfiguration ist hier zu finden: https://homeassistant.com.de/homeassistant/lambda-waermepumpe-integration-fuer-home-assistant/
+
 
 **Konfiguration:**
 - Integration über die Home Assistant UI hinzufügen (`Einstellungen` → `Geräte & Dienste` → `Integration hinzufügen` → "Lambda WP")
@@ -52,6 +63,10 @@ Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärm
 **Bekannte Probleme:**
 - Die Übersetzung in andere Sprachen (außer Deutsch und Englisch)
 
+**Haftungsausschluss/Disclaimer:**
+
+Die Nutzung dieser Software erfolgt auf eigene Gefahr. Es wird keine Haftung für Schäden, Datenverluste oder sonstige Folgen übernommen, die durch die Verwendung der Software entstehen. Jeglicher Regressanspruch ist ausgeschlossen.
+
 ---
 
 ## English
@@ -71,7 +86,15 @@ This custom integration allows you to connect Lambda heat pumps to Home Assistan
 
 **Installation:**
 1. Copy the entire `lambda` folder into your `custom_components` directory inside your Home Assistant configuration folder.
+The folders
+- .cursor
+- .github
+- .vscode
+can be deleted. They are helpful for further development.
+The "docs" folder contains the documentation and can also be deleted.
+However, all folders that are not required do not interfere with the integration.
 2. Restart Home Assistant.
+A more detailed description of the installation and configuration can be found here: https://homeassistant.com.de/homeassistant/lambda-waermepumpe-integration-fuer-home-assistant/
 
 **Configuration:**
 - Add the integration via the Home Assistant UI (`Settings` → `Devices & Services` → `Add Integration` → "Lambda WP")
@@ -130,8 +153,6 @@ Weitere Details und Konfigurationsmöglichkeiten finden sich im README des Repos
 ---
 
 **Haftungsausschluss/Disclaimer:**
-
-Die Nutzung dieser Software erfolgt auf eigene Gefahr. Es wird keine Haftung für Schäden, Datenverluste oder sonstige Folgen übernommen, die durch die Verwendung der Software entstehen. Jeglicher Regressanspruch ist ausgeschlossen.
 
 Use of this software is at your own risk. No liability is accepted for any damages, data loss, or other consequences resulting from the use of this software. Any claims for compensation are excluded.
 
