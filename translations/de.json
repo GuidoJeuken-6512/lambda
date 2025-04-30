@@ -13,7 +13,9 @@
           "debug_mode": "Debug-Modus",
           "num_hps": "Anzahl der Wärmepumpen",
           "num_boil": "Anzahl der Warmwasser Speicher",
-          "num_hc": "Anzahl der Heizkreise"
+          "num_hc": "Anzahl der Heizkreise",
+          "num_buffer": "Anzahl der Pufferspeicher",
+          "num_solar": "Anzahl der Solarmodule"
         }
       },
       "room_sensor": {

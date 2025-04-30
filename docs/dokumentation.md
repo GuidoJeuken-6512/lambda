@@ -5,20 +5,20 @@
 Die Integration besteht aus folgenden Hauptdateien:
 
 - **manifest.json**: Enthält Metadaten wie Name, Version, Abhängigkeiten (`pymodbus`), minimale Home Assistant Version (`2025.3.0`) und Konfigurationsdetails (`config_flow: true`, `iot_class: local_polling`).
-- **const.py**: Definiert Konstanten, die in der gesamten Integration verwendet werden, darunter der Domain-Name (`DOMAIN`), Standardwerte für Host/Port/Slave-ID, verfügbare Firmware-Versionen (`FIRMWARE_VERSION`) und insbesondere die Templates für dynamische Modbus-Sensoren (`HP_SENSOR_TEMPLATES`, `BOIL_SENSOR_TEMPLATES`, `HC_SENSOR_TEMPLATES`) und deren Basisadressen. Die Anzahl der Instanzen (Wärmepumpen, Boiler, Heizkreise) wird über `num_hps`, `num_boil`, `num_hc` konfiguriert.
+- **const.py**: Definiert Konstanten, die in der gesamten Integration verwendet werden, darunter der Domain-Name (`DOMAIN`), Standardwerte für Host/Port/Slave-ID, verfügbare Firmware-Versionen (`FIRMWARE_VERSION`) und insbesondere die Templates für dynamische Modbus-Sensoren (`HP_SENSOR_TEMPLATES`, `BOIL_SENSOR_TEMPLATES`, `HC_SENSOR_TEMPLATES`, `BUFFER_SENSOR_TEMPLATES`, `SOLAR_SENSOR_TEMPLATES`) und deren Basisadressen. Die Anzahl der Instanzen (Wärmepumpen, Boiler, Heizkreise, Pufferspeicher, Solarmodule) wird über `num_hps`, `num_boil`, `num_hc`, `num_buffer`, `num_solar` konfiguriert.
 - **__init__.py**: Initialisiert die Integration, richtet den zentralen `LambdaDataUpdateCoordinator` ein, lädt die Sensor- und Klima-Plattformen und registriert einen Listener für Konfigurationsänderungen, um die Integration bei Bedarf neu zu laden.
-- **config_flow.py**: Implementiert den Konfigurationsfluss für die Einrichtung der Integration über die Home Assistant UI (`LambdaConfigFlow`) und den Options-Fluss für die Anpassung der Einstellungen nach der Einrichtung (`LambdaOptionsFlow`). Die Anzahl der Instanzen für HP, Boiler und HC kann während der Einrichtung ausgewählt werden.
-- **sensor.py**: Definiert die Sensor-Plattform. Die Funktion `async_setup_entry` erstellt dynamisch Sensor-Entitäten für jede konfigurierte Instanz (HP, Boiler, HC) und jedes Template. Die Firmware-Kompatibilität wird überprüft. Die Klasse `LambdaSensor` repräsentiert einen einzelnen Sensor und bezieht seine Daten vom Coordinator.
+- **config_flow.py**: Implementiert den Konfigurationsfluss für die Einrichtung der Integration über die Home Assistant UI (`LambdaConfigFlow`) und den Options-Fluss für die Anpassung der Einstellungen nach der Einrichtung (`LambdaOptionsFlow`). Die Anzahl der Instanzen für HP, Boiler, HC, Pufferspeicher und Solar kann während der Einrichtung ausgewählt werden.
+- **sensor.py**: Definiert die Sensor-Plattform. Die Funktion `async_setup_entry` erstellt dynamisch Sensor-Entitäten für jede konfigurierte Instanz (HP, Boiler, HC, Pufferspeicher, Solar) und jedes Template. Die Firmware-Kompatibilität wird überprüft. Die Klasse `LambdaSensor` repräsentiert einen einzelnen Sensor und bezieht seine Daten vom Coordinator.
 - **climate.py**: Definiert die Klima-Plattform. Für jede Boiler- und HC-Instanz wird eine separate Klima-Entität dynamisch erstellt, die auf die entsprechenden dynamischen Sensoren verweist. Die Zieltemperatur kann über die Klima-Entität eingestellt werden.
-- **coordinator.py**: Enthält die Klasse `LambdaDataUpdateCoordinator`, die zyklisch alle konfigurierten und kompatiblen Sensoren (HP, Boiler, HC) ausliest und die Werte für die Entitäten bereitstellt.
+- **coordinator.py**: Enthält die Klasse `LambdaDataUpdateCoordinator`, die zyklisch alle konfigurierten und kompatiblen Sensoren (HP, Boiler, HC, Pufferspeicher, Solar) ausliest und die Werte für die Entitäten bereitstellt.
 
 ## Dynamische Sensor- und Klima-Generierung
 
-- Die Anzahl der Wärmepumpen (`num_hps`), Boiler (`num_boil`) und Heizkreise (`num_hc`) wird während der Einrichtung festgelegt.
-- Für jede Instanz und jedes Template werden Sensoren dynamisch erstellt (z.B. `hp1_flow_line_temperature`, `boil2_actual_high_temperature`, `hc1_room_device_temperature`).
+- Die Anzahl der Wärmepumpen (`num_hps`), Boiler (`num_boil`), Heizkreise (`num_hc`), Pufferspeicher (`num_buffer`) und Solarmodule (`num_solar`) wird während der Einrichtung festgelegt.
+- Für jede Instanz und jedes Template werden Sensoren dynamisch erstellt (z.B. `hp1_flow_line_temperature`, `boil2_actual_high_temperature`, `hc1_room_device_temperature`, `buffer1_actual_high_temp`, `solar1_collector_temp`).
 - Klima-Entitäten für Warmwasser und Heizkreis werden ebenfalls pro Instanz dynamisch erstellt (z.B. `climate.hot_water_1`, `climate.heating_circuit_2`).
 - Die Firmware-Version wird berücksichtigt: Sensoren/Entitäten werden nur erstellt, wenn sie mit der ausgewählten Firmware kompatibel sind.
-- Wenn die Anzahl der Boiler oder Heizkreise auf 0 gesetzt wird, werden keine entsprechenden Entitäten erstellt.
+- Wenn die Anzahl einer Komponente (Boiler, Heizkreise, Pufferspeicher, Solarmodule) auf 0 gesetzt wird, werden keine entsprechenden Entitäten erstellt.
 
 ## Raumthermostatsteuerung
 
@@ -62,7 +62,7 @@ Die Integration wurde für Home Assistant 2025.3 optimiert:
 3. **Daten-Update (`_async_update_data` in `LambdaDataUpdateCoordinator`)**:
     * Diese Methode wird periodisch aufgerufen (entsprechend `SCAN_INTERVAL`).
     * Verbindung zum Modbus-Gerät, falls noch nicht verbunden.
-    * Auslesen der Modbus-Register für jede konfigurierte Instanz (HP, Boiler, HC) und jedes Template.
+    * Auslesen der Modbus-Register für jede konfigurierte Instanz (HP, Boiler, HC, Pufferspeicher, Solar) und jedes Template.
     * Verarbeitung der Rohdaten basierend auf Datentyp (`int16`, `int32`) und Skalierung (`scale`).
     * Speicherung der verarbeiteten Werte in einem Dictionary.
     * Rückgabe des Daten-Dictionaries. Home Assistant benachrichtigt dann alle abhängigen Entitäten über die neuen Daten.

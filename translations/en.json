@@ -13,7 +13,9 @@
           "debug_mode": "Debug Mode",
           "num_hps": "Number of heat pumps",
           "num_boil": "Number of hot water boilers",
-          "num_hc": "Number of heating circuits"
+          "num_hc": "Number of heating circuits",
+          "num_buffer": "Number of buffer tanks",
+          "num_solar": "Number of solar modules"
         }
       },
       "room_sensor": {

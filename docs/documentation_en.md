@@ -5,20 +5,20 @@
 The integration consists of the following main files:
 
 - **manifest.json**: Contains metadata such as name, version, dependencies (`pymodbus`), minimum Home Assistant version (`2025.3.0`), and configuration details (`config_flow: true`, `iot_class: local_polling`).
-- **const.py**: Defines constants used throughout the integration, including the domain name (`DOMAIN`), default values for host/port/slave ID, available firmware versions (`FIRMWARE_VERSION`), and especially the templates for dynamic Modbus sensors (`HP_SENSOR_TEMPLATES`, `BOIL_SENSOR_TEMPLATES`, `HC_SENSOR_TEMPLATES`) and their base addresses. The number of instances (heat pumps, boilers, heating circuits) is configured via `num_hps`, `num_boil`, `num_hc`.
+- **const.py**: Defines constants used throughout the integration, including the domain name (`DOMAIN`), default values for host/port/slave ID, available firmware versions (`FIRMWARE_VERSION`), and especially the templates for dynamic Modbus sensors (`HP_SENSOR_TEMPLATES`, `BOIL_SENSOR_TEMPLATES`, `HC_SENSOR_TEMPLATES`, `BUFFER_SENSOR_TEMPLATES`, `SOLAR_SENSOR_TEMPLATES`) and their base addresses. The number of instances (heat pumps, boilers, heating circuits, buffer tanks, solar modules) is configured via `num_hps`, `num_boil`, `num_hc`, `num_buffer`, `num_solar`.
 - **__init__.py**: Initializes the integration, sets up the central `LambdaDataUpdateCoordinator`, loads the sensor and climate platforms, and registers a listener for configuration changes to reload the integration if needed.
-- **config_flow.py**: Implements the configuration flow for setting up the integration via the Home Assistant UI (`LambdaConfigFlow`) and the options flow for adjusting settings after setup (`LambdaOptionsFlow`). The number of instances for HP, Boiler, and HC can be selected during setup.
-- **sensor.py**: Defines the sensor platform. The `async_setup_entry` function dynamically creates sensor entities for each configured instance (HP, Boiler, HC) and each template. Firmware compatibility is checked. The `LambdaSensor` class represents a single sensor and fetches its data from the coordinator.
+- **config_flow.py**: Implements the configuration flow for setting up the integration via the Home Assistant UI (`LambdaConfigFlow`) and the options flow for adjusting settings after setup (`LambdaOptionsFlow`). The number of instances for HP, Boiler, HC, Buffer, and Solar can be selected during setup.
+- **sensor.py**: Defines the sensor platform. The `async_setup_entry` function dynamically creates sensor entities for each configured instance (HP, Boiler, HC, Buffer, Solar) and each template. Firmware compatibility is checked. The `LambdaSensor` class represents a single sensor and fetches its data from the coordinator.
 - **climate.py**: Defines the climate platform. For each Boiler and HC instance, a separate climate entity is dynamically created, referencing the appropriate dynamic sensors. The target temperature can be set via the climate entity.
-- **coordinator.py**: Contains the `LambdaDataUpdateCoordinator` class, which cyclically reads all configured and compatible sensors (HP, Boiler, HC) and provides the values for the entities.
+- **coordinator.py**: Contains the `LambdaDataUpdateCoordinator` class, which cyclically reads all configured and compatible sensors (HP, Boiler, HC, Buffer, Solar) and provides the values for the entities.
 
 ## Dynamic Sensor and Climate Generation
 
-- The number of heat pumps (`num_hps`), boilers (`num_boil`), and heating circuits (`num_hc`) is set during setup.
-- For each instance and each template, sensors are dynamically created (e.g., `hp1_flow_line_temperature`, `boil2_actual_high_temperature`, `hc1_room_device_temperature`).
+- The number of heat pumps (`num_hps`), boilers (`num_boil`), heating circuits (`num_hc`), buffer tanks (`num_buffer`), and solar modules (`num_solar`) is set during setup.
+- For each instance and each template, sensors are dynamically created (e.g., `hp1_flow_line_temperature`, `boil2_actual_high_temperature`, `hc1_room_device_temperature`, `buffer1_actual_high_temp`, `solar1_collector_temp`).
 - Climate entities for hot water and heating circuit are also dynamically created per instance (e.g., `climate.hot_water_1`, `climate.heating_circuit_2`).
 - The firmware version is considered: sensors/entities are only created if they are compatible with the selected firmware.
-- If the number of boilers or heating circuits is set to 0, no corresponding entities are created.
+- If the number of any component (boilers, heating circuits, buffer tanks, solar modules) is set to 0, no corresponding entities are created.
 
 ## Room Thermostat Control
 
@@ -62,14 +62,14 @@ The integration has been optimized for Home Assistant 2025.3:
 3. **Data Update (`_async_update_data` in `LambdaDataUpdateCoordinator`)**:
     * This method is called periodically (according to `SCAN_INTERVAL`).
     * Connects to the Modbus device if not already connected.
-    * Reads Modbus registers for each configured instance (HP, Boiler, HC) and each template.
+    * Reads Modbus registers for each configured instance (HP, Boiler, HC, Buffer, Solar) and each template.
     * Processes raw data based on data type (`int16`, `int32`) and scaling (`scale`).
     * Stores the processed values in a dictionary.
     * Returns the data dictionary. Home Assistant then notifies all dependent entities of the new data.
 
 4. **Configuration Flow (`config_flow.py`)**:
     * **`LambdaConfigFlow`**: Called when the integration is added.
-        * `async_step_user`: Shows the initial form (name, host, port, slave ID, debug mode, firmware version, number of HP/Boiler/HC). Firmware options are generated from `FIRMWARE_VERSION`. After input, data is validated and a config entry is created (`async_create_entry`).
+        * `async_step_user`: Shows the initial form (name, host, port, slave ID, debug mode, firmware version, number of HP/Boiler/HC/Buffer/Solar). Firmware options are generated from `FIRMWARE_VERSION`. After input, data is validated and a config entry is created (`async_create_entry`).
         * `async_step_room_sensor`: Called when room thermostat control is activated. Lists available temperature sensors and allows selection per heating circuit.
     * **`LambdaOptionsFlow`**: Called when the user edits integration options.
         * `async_step_init`: Shows the options form (temperature ranges, update interval, firmware version, room thermostat control). The number of instances cannot be changed afterwards.

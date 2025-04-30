@@ -7,14 +7,14 @@
 
 ## Branches
 Im "main" Branch steht die Grundfunktionalität zur Verfügung. 
-Im "subdevices" steht zudem die Möglichkeit zur Verfügung mehrer Untergeräte der Klassen HeatPump/Heating curcuit/Boiler zu erzeugen und eine RaumThemostat Steuerung einzurichten.
+Im "subdevices" steht zudem die Möglichkeit zur Verfügung mehrer Untergeräte der Klassen HeatPump/Heating curcuit/Boiler/Buffer/Solar zu erzeugen und eine RaumThemostat Steuerung einzurichten.
 
 Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärmepumpen in Home Assistant über das Modbus/TCP Protokoll. Sie liest Sensordaten aus und ermöglicht die Steuerung von Klima-Entitäten (z.B. Warmwasser, Heizkreis).
 
 **Features:**
 - Auslesen diverser Sensoren der Wärmepumpe (Temperaturen, Zustände, Energieverbrauch etc.)
 - Steuerung der Zieltemperatur für Warmwasser und Heizkreise über `climate`-Entitäten
-- Dynamische Anpassung der Sensoren und Entitäten basierend auf der Firmware-Version und der konfigurierten Anzahl von Wärmepumpen, Boilern und Heizkreisen
+- Dynamische Anpassung der Sensoren und Entitäten basierend auf der Firmware-Version und der konfigurierten Anzahl von Wärmepumpen, Boilern, Heizkreisen, Pufferspeichern und Solarmodulen
 - Raumthermostatsteuerung: Verwendung externer Temperatursensoren für jeden Heizkreis
 - Konfigurierbarer Update-Intervall
 - Konfiguration über die Home Assistant UI (Integrations)
@@ -25,7 +25,7 @@ Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärm
 
 **Konfiguration:**
 - Integration über die Home Assistant UI hinzufügen (`Einstellungen` → `Geräte & Dienste` → `Integration hinzufügen` → "Lambda WP")
-- Geben Sie Name, Host, Port, Slave ID, Firmware-Version und die Anzahl der Wärmepumpen, Boiler und Heizkreise an
+- Geben Sie Name, Host, Port, Slave ID, Firmware-Version und die Anzahl der Wärmepumpen, Boiler, Heizkreise, Pufferspeicher und Solarmodule an
 - Optional: Aktivieren Sie die Raumthermostatsteuerung, um externe Temperatursensoren für jeden Heizkreis zu verwenden
 - Nach der Einrichtung können Temperaturbereiche und Update-Intervall über die Optionen angepasst werden
 
@@ -51,13 +51,13 @@ Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärm
 This custom integration allows you to connect Lambda heat pumps to Home Assistant via the Modbus/TCP protocol. It reads sensor data and enables control of climate entities (e.g., hot water, heating circuit).
 
 ## Branches
-The basic functionality is available in the “main” branch. 
-In the “subdevices” it is also possible to create several subdevices of the classes HeatPump/Heating circuit/Boiler and to set up a room thermostat control.
+The basic functionality is available in the "main" branch. 
+In the "subdevices" it is also possible to create several subdevices of the classes HeatPump/Heating circuit/Boiler/Buffer/Solar and to set up a room thermostat control.
 
 **Features:**
 - Reads various heat pump sensors (temperatures, states, energy consumption, etc.)
 - Control of target temperature for hot water and heating circuits via `climate` entities
-- Dynamic adaptation of sensors and entities based on firmware version and configured number of heat pumps, boilers, and heating circuits
+- Dynamic adaptation of sensors and entities based on firmware version and configured number of heat pumps, boilers, heating circuits, buffer tanks, and solar modules
 - Room thermostat control: Use external temperature sensors for each heating circuit
 - Configurable update interval
 - Configuration via the Home Assistant UI (Integrations)
@@ -68,7 +68,7 @@ In the “subdevices” it is also possible to create several subdevices of the 
 
 **Configuration:**
 - Add the integration via the Home Assistant UI (`Settings` → `Devices & Services` → `Add Integration` → "Lambda WP")
-- Enter name, host, port, slave ID, firmware version, and the number of heat pumps, boilers, and heating circuits
+- Enter name, host, port, slave ID, firmware version, and the number of heat pumps, boilers, heating circuits, buffer tanks, and solar modules
 - Optional: Enable room thermostat control to use external temperature sensors for each heating circuit
 - After setup, temperature ranges and update interval can be adjusted via the options
 

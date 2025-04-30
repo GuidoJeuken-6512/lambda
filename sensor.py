@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, HP_SENSOR_TEMPLATES, HP_BASE_ADDRESS, BOIL_SENSOR_TEMPLATES, BOIL_BASE_ADDRESS, HC_SENSOR_TEMPLATES, HC_BASE_ADDRESS
+from .utils import get_compatible_sensors
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     
     # Hole die konfigurierte Firmware-Version
-    configured_fw = entry.data.get("firmware_version", "V0.0.4-3K")
+    configured_fw = entry.options.get("firmware_version", entry.data.get("firmware_version", "V0.0.4-3K"))
     fw_version = int(FIRMWARE_VERSION.get(configured_fw, "1"))
     
     _LOGGER.debug(
@@ -44,7 +45,8 @@ async def async_setup_entry(
     name_prefix = entry.data.get("name", "lambda").lower().replace(" ", "")
 
     # Statische Sensoren mit Prefix und angepasstem Friendly Name versehen
-    for sensor_id, sensor_config in SENSOR_TYPES.items():
+    compatible_static_sensors = get_compatible_sensors(SENSOR_TYPES, fw_version)
+    for sensor_id, sensor_config in compatible_static_sensors.items():
         sensor_fw = sensor_config.get("firmware_version", 1)
         is_compatible = sensor_fw <= fw_version
         _LOGGER.debug(
@@ -55,42 +57,27 @@ async def async_setup_entry(
             is_compatible,
             sensor_config
         )
-        if is_compatible:
-            # sensor_id bleibt unverändert (ohne Prefix)
-            sensor_config_with_name = sensor_config.copy()
-            if not sensor_config["name"].upper().startswith(name_prefix.upper()):
-                sensor_config_with_name["name"] = f"{name_prefix.upper()} {sensor_config['name']}"
-            else:
-                sensor_config_with_name["name"] = sensor_config["name"]
-            entities.append(
-                LambdaSensor(
-                    coordinator=coordinator,
-                    entry=entry,
-                    sensor_id=sensor_id,
-                    sensor_config=sensor_config_with_name,
-                )
+        # sensor_id bleibt unverändert (ohne Prefix)
+        sensor_config_with_name = sensor_config.copy()
+        if not sensor_config["name"].upper().startswith(name_prefix.upper()):
+            sensor_config_with_name["name"] = f"{name_prefix.upper()} {sensor_config['name']}"
+        else:
+            sensor_config_with_name["name"] = sensor_config["name"]
+        entities.append(
+            LambdaSensor(
+                coordinator=coordinator,
+                entry=entry,
+                sensor_id=sensor_id,
+                sensor_config=sensor_config_with_name,
             )
-    
+        )
+
     # Dynamische Generierung der HP-Sensoren
+    compatible_hp_templates = get_compatible_sensors(HP_SENSOR_TEMPLATES, fw_version)
     num_hps = entry.data.get("num_hps", 1)
     _LOGGER.debug("Starting dynamic sensor generation for %d heat pumps", num_hps)
     for hp_idx in range(1, num_hps + 1):
-        for template_key, template in HP_SENSOR_TEMPLATES.items():
-            # Firmware-Prüfung für dynamische HP-Sensoren
-            template_fw = template.get("firmware_version", 1)
-            is_compatible = template_fw <= fw_version
-            _LOGGER.debug(
-                "Dynamic Sensor Compatibility Check - HP: %d, Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s, Raw Template: %s",
-                hp_idx,
-                template_key,
-                template_fw,
-                fw_version,
-                is_compatible,
-                template
-            )
-            if not is_compatible:
-                _LOGGER.debug("Skipping HP sensor %s for HP %d due to firmware version (required: %s, current: %s)", template_key, hp_idx, template_fw, fw_version)
-                continue
+        for template_key, template in compatible_hp_templates.items():
             # Korrekte sensor_id: <name>_hp<idx>_<template_key>
             sensor_id = f"hp{hp_idx}_{template_key}"
             address = HP_BASE_ADDRESS[hp_idx] + template["relative_address"]
@@ -106,34 +93,19 @@ async def async_setup_entry(
                     sensor_config=sensor_config,
                 )
             )
-    _LOGGER.debug("Total number of dynamic HP sensors created: %d", len(entities) - len(SENSOR_TYPES))
-    
+    _LOGGER.debug("Total number of dynamic HP sensors created: %d", len(entities) - len(compatible_static_sensors))
+
     # Dynamische Generierung der Boiler-Sensoren
+    compatible_boil_templates = get_compatible_sensors(BOIL_SENSOR_TEMPLATES, fw_version)
     num_boil = entry.data.get("num_boil", 1)
     _LOGGER.debug("Starting dynamic sensor generation for %d boilers", num_boil)
     for boil_idx in range(1, num_boil + 1):
-        for template_key, template in BOIL_SENSOR_TEMPLATES.items():
-            # Firmware-Prüfung für dynamische Boiler-Sensoren
-            template_fw = template.get("firmware_version", 1)
-            is_compatible = template_fw <= fw_version
-            _LOGGER.debug(
-                "Dynamic Boiler Sensor Compatibility Check - Boiler: %d, Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s, Raw Template: %s",
-                boil_idx,
-                template_key,
-                template_fw,
-                fw_version,
-                is_compatible,
-                template
-            )
-            if not is_compatible:
-                _LOGGER.debug("Skipping Boiler sensor %s for Boiler %d due to firmware version (required: %s, current: %s)", template_key, boil_idx, template_fw, fw_version)
-                continue
+        for template_key, template in compatible_boil_templates.items():
             # Korrekte sensor_id: <name>_boil<idx>_<template_key>
             sensor_id = f"boil{boil_idx}_{template_key}"
             address = BOIL_BASE_ADDRESS[boil_idx] + template["relative_address"]
             sensor_config = template.copy()
             sensor_config["address"] = address
-            # Boiler aus dem Namen entfernen, auch im original_name
             orig_name = template["name"].replace("Boiler ", "")
             sensor_config["name"] = f"{name_prefix.upper()} Boil{boil_idx} {orig_name}"
             sensor_config["original_name"] = f"{name_prefix.upper()} Boil{boil_idx} {orig_name}"
@@ -146,28 +118,14 @@ async def async_setup_entry(
                     sensor_config=sensor_config,
                 )
             )
-    _LOGGER.debug("Total number of dynamic Boiler sensors created: %d", len(entities) - len(SENSOR_TYPES))
-    
+    _LOGGER.debug("Total number of dynamic Boiler sensors created: %d", len(entities) - len(compatible_static_sensors))
+
     # Dynamische Generierung der HC-Sensoren
+    compatible_hc_templates = get_compatible_sensors(HC_SENSOR_TEMPLATES, fw_version)
     num_hc = entry.data.get("num_hc", 1)
     _LOGGER.debug("Starting dynamic sensor generation for %d heating circuits", num_hc)
     for hc_idx in range(1, num_hc + 1):
-        for template_key, template in HC_SENSOR_TEMPLATES.items():
-            template_fw = template.get("firmware_version", 1)
-            is_compatible = template_fw <= fw_version
-            _LOGGER.debug(
-                "Dynamic HC Sensor Compatibility Check - HC: %d, Sensor: %s, Required FW: %s, Current FW: %s, Compatible: %s, Raw Template: %s",
-                hc_idx,
-                template_key,
-                template_fw,
-                fw_version,
-                is_compatible,
-                template
-            )
-            if not is_compatible:
-                _LOGGER.debug("Skipping HC sensor %s for HC %d due to firmware version (required: %s, current: %s)", template_key, hc_idx, template_fw, fw_version)
-                continue
-            # Korrekte sensor_id: <name>_hc<idx>_<template_key>
+        for template_key, template in compatible_hc_templates.items():
             sensor_id = f"hc{hc_idx}_{template_key}"
             address = HC_BASE_ADDRESS[hc_idx] + template["relative_address"]
             sensor_config = template.copy()
@@ -182,7 +140,7 @@ async def async_setup_entry(
                     sensor_config=sensor_config,
                 )
             )
-    _LOGGER.debug("Total number of dynamic HC sensors created: %d", len(entities) - len(SENSOR_TYPES) - num_hps * len(HP_SENSOR_TEMPLATES) - num_boil * len(BOIL_SENSOR_TEMPLATES))
+    _LOGGER.debug("Total number of dynamic HC sensors created: %d", len(entities) - len(compatible_static_sensors) - num_hps * len(compatible_hp_templates) - num_boil * len(compatible_boil_templates))
     
     async_add_entities(entities)
 

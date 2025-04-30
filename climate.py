@@ -23,6 +23,12 @@ from .const import (
     HC_SENSOR_TEMPLATES,
     BOIL_OPERATING_STATE,
     HC_OPERATING_STATE,
+    DEFAULT_HOT_WATER_MIN_TEMP,
+    DEFAULT_HOT_WATER_MAX_TEMP,
+    DEFAULT_HEATING_CIRCUIT_MIN_TEMP,
+    DEFAULT_HEATING_CIRCUIT_MAX_TEMP,
+    DEFAULT_HEATING_CIRCUIT_TEMP_STEP,
+    DEFAULT_FIRMWARE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,7 +45,7 @@ async def async_setup_entry(
     options = entry.options
     
     # Hole die konfigurierte Firmware-Version
-    configured_fw = entry.data.get("firmware_version", "V0.0.4-3K")
+    configured_fw = entry.options.get("firmware_version", entry.data.get("firmware_version", DEFAULT_FIRMWARE))
     fw_version = int(FIRMWARE_VERSION.get(configured_fw, "1"))
     
     _LOGGER.debug(
@@ -117,8 +123,8 @@ async def async_setup_entry(
                     translation_key="hot_water",
                     current_temp_sensor=hw_current_temp_sensor,
                     target_temp_sensor=hw_target_temp_sensor,
-                    min_temp=options.get("hot_water_min_temp", 40),
-                    max_temp=options.get("hot_water_max_temp", 60),
+                    min_temp=options.get("hot_water_min_temp", DEFAULT_HOT_WATER_MIN_TEMP),
+                    max_temp=options.get("hot_water_max_temp", DEFAULT_HOT_WATER_MAX_TEMP),
                     temp_step=1
                 )
             )
@@ -137,9 +143,9 @@ async def async_setup_entry(
                     translation_key="heating_circuit",
                     current_temp_sensor=hc_current_temp_sensor,
                     target_temp_sensor=hc_target_temp_sensor,
-                    min_temp=options.get("heating_circuit_min_temp", 15),
-                    max_temp=options.get("heating_circuit_max_temp", 35),
-                    temp_step=0.5
+                    min_temp=options.get("heating_circuit_min_temp", DEFAULT_HEATING_CIRCUIT_MIN_TEMP),
+                    max_temp=options.get("heating_circuit_max_temp", DEFAULT_HEATING_CIRCUIT_MAX_TEMP),
+                    temp_step=options.get("heating_circuit_temp_step", DEFAULT_HEATING_CIRCUIT_TEMP_STEP)
                 )
             )
     
