@@ -20,16 +20,9 @@ Die Integration besteht aus folgenden Hauptdateien:
 - Die Firmware-Version wird berücksichtigt: Sensoren/Entitäten werden nur erstellt, wenn sie mit der ausgewählten Firmware kompatibel sind.
 - Wenn die Anzahl einer Komponente (Boiler, Heizkreise, Pufferspeicher, Solarmodule) auf 0 gesetzt wird, werden keine entsprechenden Entitäten erstellt.
 
-## Raumthermostatsteuerung
+## Raumthermostatsteuerung & Modbus-Schreibvorgang
 
-Die Integration bietet eine Raumthermostatsteuerung, die es ermöglicht, externe Temperatursensoren für jeden Heizkreis zu verwenden:
-
-- Aktivierung über die Option `room_thermostat_control` während der Einrichtung oder in den Optionen
-- Nach Aktivierung wird ein zusätzlicher Konfigurationsschritt angezeigt, in dem für jeden konfigurierten Heizkreis ein Temperatursensor ausgewählt werden kann
-- Die ausgewählten Sensoren werden im `options`-Dict des Config-Eintrags gespeichert
-- Die gemessenen Temperaturen werden über den Modbus an die entsprechenden Register der Wärmepumpe übertragen
-- Die Wärmepumpe verwendet diese Werte anstelle ihrer internen Messungen für die Heizkreisregelung
-- Die Übertragung erfolgt automatisch in regelmäßigen Intervallen (konfiguriert über `ROOM_TEMPERATURE_UPDATE_INTERVAL`)
+Die Integration ermöglicht es, für jeden Heizkreis einen beliebigen externen Temperatursensor aus Home Assistant auszuwählen (Dropdown, nur Fremdsensoren mit device_class 'temperature'). Die Auswahl erfolgt im Options-Flow. Die gemessenen Werte werden automatisch und regelmäßig (z.B. jede Minute) in die Modbus-Register der jeweiligen Heizkreise geschrieben. Dies geschieht über die Service-Funktion `async_update_room_temperature` in `services.py`, die für jeden Heizkreis den Wert ausliest, prüft und über den Modbus-Client in das passende Register schreibt. Fehler werden geloggt. Die Übertragung kann auch manuell über den Service `lambda.update_room_temperature` ausgelöst werden. Jeder Schreibvorgang wird im Log dokumentiert (Debug-Level). Die technische Umsetzung und der Ablauf sind in `services.py` dokumentiert.
 
 ## Zentrale Firmware- und Sensor-Filterung
 - Die Firmware-Version kann nachträglich im Options-Dialog geändert werden und triggert ein vollständiges Reload (inkl. Filterung der Sensoren und Entitäten).

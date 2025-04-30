@@ -29,14 +29,14 @@ Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärm
 **Konfiguration:**
 - Integration über die Home Assistant UI hinzufügen (`Einstellungen` → `Geräte & Dienste` → `Integration hinzufügen` → "Lambda WP")
 - Geben Sie Name, Host, Port, Slave ID, Firmware-Version und die Anzahl der Wärmepumpen, Boiler, Heizkreise, Pufferspeicher und Solarmodule an
+- **Für alle Gerätetypen (Wärmepumpe, Boiler, Heizkreis, Puffer, Solar) kann die Anzahl flexibel zwischen 0 und 5 gewählt werden.**
 - Optional: Aktivieren Sie die Raumthermostatsteuerung, um externe Temperatursensoren für jeden Heizkreis zu verwenden
 - Nach der Einrichtung können Temperaturbereiche, Firmware-Version und Update-Intervall **jederzeit** über die Optionen angepasst werden
 
-**Raumthermostatsteuerung:**
-- Ermöglicht die Verwendung eines externen Temperatursensors für jeden Heizkreis
-- Der Sensorwert wird an die Lambda Wärmepumpe übermittelt und für die Regelung verwendet
-- Aktivierung der Funktion in den Integrationseinstellungen
-- Auswahl eines Temperatursensors pro Heizkreis
+**Raumthermostatsteuerung & Modbus-Schreibvorgang (Kurzfassung):**
+- Externe Temperatursensoren können für jeden Heizkreis ausgewählt werden (Dropdown, nur Fremdsensoren mit device_class 'temperature').
+- Die Integration schreibt die gemessenen Werte automatisch und regelmäßig in die Modbus-Register der Heizkreise.
+- Das Schreiben erfolgt über die Service-Funktion in `services.py` und kann auch manuell per Service-Aufruf ausgelöst werden.
 
 **Firmware- und Sensor-Handling:**
 - Die Firmware-Version kann nachträglich im Options-Dialog geändert werden und triggert ein vollständiges Reload (inkl. Filterung der Sensoren)
@@ -84,14 +84,14 @@ In the "subdevices" it is also possible to create several subdevices of the clas
 **Configuration:**
 - Add the integration via the Home Assistant UI (`Settings` → `Devices & Services` → `Add Integration` → "Lambda WP")
 - Enter name, host, port, slave ID, firmware version, and the number of heat pumps, boilers, heating circuits, buffer tanks, and solar modules
+- **For all device types (heat pump, boiler, heating circuit, buffer, solar) the number can be flexibly set between 0 and 5 per type.**
 - Optional: Enable room thermostat control to use external temperature sensors for each heating circuit
 - After setup, temperature ranges, firmware version and update interval can be **changed at any time** via the options
 
-**Room Thermostat Control:**
-- Allows using an external temperature sensor for each heating circuit
-- The sensor value is sent to the Lambda heat pump and used for regulation
-- Activation of this feature in the integration settings
-- Selection of a temperature sensor per heating circuit
+**Raumthermostatsteuerung & Modbus-Schreibvorgang (Kurzfassung):**
+- External temperature sensors can be selected for each heating circuit (dropdown, only non-integration sensors with device_class 'temperature').
+- The integration automatically and regularly writes the measured values to the Modbus registers of the heating circuits.
+- Writing is handled by the service function in `services.py` and can also be triggered manually via a service call.
 
 **Firmware and Sensor Handling:**
 - The firmware version can be changed later in the options dialog and triggers a full reload (including filtering of sensors)

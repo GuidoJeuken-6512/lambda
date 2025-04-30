@@ -44,6 +44,10 @@ The integration offers room thermostat control, which allows using external temp
 - Debug logging when saving configuration/options
 - All features and options are fully UI-configurable
 
+## Room Thermostat Control & Modbus Write Process
+
+The integration allows you to select any external temperature sensor from Home Assistant for each heating circuit (dropdown, only non-integration sensors with device_class 'temperature'). Selection is done in the options flow. The measured values are automatically and regularly (e.g., every minute) written to the Modbus registers of the respective heating circuits. This is handled by the service function `async_update_room_temperature` in `services.py`, which reads, validates, and writes the value for each circuit to the correct register via the Modbus client. Errors are logged. The transmission can also be triggered manually via the `lambda.update_room_temperature` service. Each write operation is logged at debug level. The technical implementation and process are documented in `services.py`.
+
 ## Workflow
 
 1. **Setup (`async_setup_entry` in `__init__.py`)**:

@@ -18,6 +18,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import selector
 from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 from .const import (
     DOMAIN,
@@ -120,7 +121,7 @@ class LambdaConfigFlow(ConfigFlow, domain=DOMAIN):
                         ): selector.NumberSelector(
                             selector.NumberSelectorConfig(
                                 min=1,
-                                max=10,
+                                max=5,
                                 step=1,
                                 mode=selector.NumberSelectorMode.BOX
                             )
@@ -130,8 +131,8 @@ class LambdaConfigFlow(ConfigFlow, domain=DOMAIN):
                             default=int(user_input.get("num_boil", existing_data.get("num_boil", DEFAULT_NUM_BOIL))),
                         ): selector.NumberSelector(
                             selector.NumberSelectorConfig(
-                                min=1,
-                                max=10,
+                                min=0,
+                                max=5,
                                 step=1,
                                 mode=selector.NumberSelectorMode.BOX
                             )
@@ -141,8 +142,8 @@ class LambdaConfigFlow(ConfigFlow, domain=DOMAIN):
                             default=int(user_input.get("num_hc", existing_data.get("num_hc", DEFAULT_NUM_HC))),
                         ): selector.NumberSelector(
                             selector.NumberSelectorConfig(
-                                min=1,
-                                max=10,
+                                min=0,
+                                max=5,
                                 step=1,
                                 mode=selector.NumberSelectorMode.BOX
                             )
@@ -152,8 +153,8 @@ class LambdaConfigFlow(ConfigFlow, domain=DOMAIN):
                             default=int(user_input.get("num_buffer", existing_data.get("num_buffer", DEFAULT_NUM_BUFFER))),
                         ): selector.NumberSelector(
                             selector.NumberSelectorConfig(
-                                min=1,
-                                max=10,
+                                min=0,
+                                max=5,
                                 step=1,
                                 mode=selector.NumberSelectorMode.BOX
                             )
@@ -163,8 +164,8 @@ class LambdaConfigFlow(ConfigFlow, domain=DOMAIN):
                             default=int(user_input.get("num_solar", existing_data.get("num_solar", DEFAULT_NUM_SOLAR))),
                         ): selector.NumberSelector(
                             selector.NumberSelectorConfig(
-                                min=1,
-                                max=10,
+                                min=0,
+                                max=5,
                                 step=1,
                                 mode=selector.NumberSelectorMode.BOX
                             )
@@ -401,42 +402,63 @@ class LambdaOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the room sensor selection step."""
+        from homeassistant.helpers.entity_registry import async_get
         errors: dict[str, str] = {}
-        
-        # Get number of heating circuits from configuration
-        num_hc = self._config_entry.data.get("num_hc", DEFAULT_NUM_HC)
-        
+        num_hc = self._config_entry.data.get("num_hc", 1)
+
         if user_input is not None:
             try:
-                # Update options with new values while preserving existing ones
-                updated_options = dict(self._options)
-                updated_options.update(user_input)
-                
-                # Create config entry with collected data
-                return self.async_create_entry(title="", data=updated_options)
-            except Exception as ex:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception in room sensor selection: %s", ex)
+                for hc_idx in range(1, num_hc + 1):
+                    entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
+                    if entity_key in user_input and user_input[entity_key]:
+                        self._options[entity_key] = user_input[entity_key]
+                    elif entity_key in self._options:
+                        del self._options[entity_key]
+                return self.async_create_entry(title="", data=self._options)
+            except Exception:
+                _LOGGER.exception("Unexpected exception in room sensor selection")
                 errors["base"] = "unknown"
-        
-        # Create schema for each heating circuit
+
+        # Hole alle Entities, die NICHT zur eigenen Integration gehören
+        temp_entities = []
+        registry = async_get(self.hass)
+        eigene_entity_ids = {e.entity_id for e in registry.entities.values() if e.config_entry_id == self._config_entry.entry_id}
+        for entity_id in self.hass.states.async_entity_ids():
+            if entity_id in eigene_entity_ids:
+                continue
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                continue
+            if state.attributes.get("device_class") == "temperature":
+                friendly = state.attributes.get("friendly_name", entity_id)
+                temp_entities.append((entity_id, friendly))
+
+        if not temp_entities:
+            errors["base"] = "no_temp_sensors"
+            return self.async_show_form(
+                step_id="room_sensor",
+                errors=errors
+            )
+
+        # Sortiere nach Friendly Name
+        temp_entities.sort(key=lambda x: x[1].lower())
+
         schema = {}
         for hc_idx in range(1, num_hc + 1):
             entity_key = CONF_ROOM_TEMPERATURE_ENTITY.format(hc_idx)
             schema[vol.Optional(
                 entity_key,
                 default=self._options.get(entity_key, "")
-            )] = selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    domain=["sensor", "climate", "weather"],
-                    device_class=SensorDeviceClass.TEMPERATURE,
-                    multiple=False
+            )] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[{"value": eid, "label": fname} for eid, fname in temp_entities],
+                    mode=selector.SelectSelectorMode.DROPDOWN
                 )
             )
-        
         return self.async_show_form(
             step_id="room_sensor",
             data_schema=vol.Schema(schema),
-            errors=errors,
+            errors=errors
         )
 
     async def _test_connection(self, user_input: dict[str, Any]) -> None:

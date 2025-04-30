@@ -120,16 +120,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         entry_id
                     )
                     
-                    # Kein tatsächlicher Modbus-Schreibvorgang!
-                    # result = await hass.async_add_executor_job(
-                    #     coordinator.client.write_registers,
-                    #     register_address,
-                    #     [raw_value],
-                    #     config_entry.data.get("slave_id", 1)
-                    # )
-                    # 
-                    # if result.isError():
-                    #     _LOGGER.error("Failed to write room temperature: %s", result)
+                    #Kein tatsächlicher Modbus-Schreibvorgang! Ab hier auskommentieren, wenn Modbus-Schreibvorgang deaktiviert werden soll.
+                    result = await hass.async_add_executor_job(
+                        coordinator.client.write_registers,
+                        register_address,
+                        [raw_value],
+                        config_entry.data.get("slave_id", 1)
+                    )
+                    
+                    if result.isError():
+                        _LOGGER.error("Failed to write room temperature: %s", result)
                         
                 except (ValueError, TypeError) as ex:
                     _LOGGER.error(
@@ -183,8 +183,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             
             # Timer einrichten
             async def scheduled_update_callback(_):
-                _LOGGER.warning("scheduled_update_callback called for entry_id %s", entry_id)
-                await async_update_room_temperature(ServiceCall(DOMAIN, "update_room_temperature", service_data))
+                await async_update_room_temperature(ServiceCall(DOMAIN, "update_room_temperature", service_data)
+                )
 
             unsub = async_track_time_interval(
                 hass,
