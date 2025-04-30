@@ -7,10 +7,6 @@
 
 Diese benutzerdefinierte Integration ermöglicht die Einbindung von Lambda Wärmepumpen in Home Assistant über das Modbus/TCP Protokoll. Sie liest Sensordaten aus und ermöglicht die Steuerung von Klima-Entitäten (z.B. Warmwasser, Heizkreis).
 
-## Branches
-Im "main" Branch steht die Grundfunktionalität zur Verfügung. 
-Im "subdevices" steht zudem die Möglichkeit zur Verfügung mehrer Untergeräte der Klassen HeatPump/Heating curcuit/Boiler zu erzeugen und eine RaumThemostat Steuerung einzurichten.
-
 **Features:**
 - Auslesen diverser Sensoren der Wärmepumpe (Temperaturen, Zustände, Energieverbrauch etc.)
 - Steuerung der Zieltemperatur für Warmwasser und Heizkreise über `climate`-Entitäten
