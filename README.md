@@ -136,3 +136,11 @@ Für Entwicklung und Test der Integration steht ein separates Repository mit Mod
 Weitere Details und Konfigurationsmöglichkeiten finden sich im README des Repositories und in den jeweiligen Python-Dateien.
 
 ---
+
+**Haftungsausschluss/Disclaimer:**
+
+Die Nutzung dieser Software erfolgt auf eigene Gefahr. Es wird keine Haftung für Schäden, Datenverluste oder sonstige Folgen übernommen, die durch die Verwendung der Software entstehen. Jeglicher Regressanspruch ist ausgeschlossen.
+
+Use of this software is at your own risk. No liability is accepted for any damages, data loss, or other consequences resulting from the use of this software. Any claims for compensation are excluded.
+
+---
