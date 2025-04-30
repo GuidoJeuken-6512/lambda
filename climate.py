@@ -14,7 +14,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, DEFAULT_NAME, SENSOR_TYPES, FIRMWARE_VERSION, BOIL_SENSOR_TEMPLATES, HC_SENSOR_TEMPLATES
+from .const import (
+    DOMAIN, 
+    DEFAULT_NAME, 
+    SENSOR_TYPES, 
+    FIRMWARE_VERSION, 
+    BOIL_SENSOR_TEMPLATES, 
+    HC_SENSOR_TEMPLATES,
+    BOIL_OPERATING_STATE,
+    HC_OPERATING_STATE,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -172,15 +181,20 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
             self._attr_name = f"{name_prefix.upper()} Boil{idx}"
             self._attr_unique_id = f"{name_prefix}_boil{idx}_climate"
             self.entity_id = f"climate.{name_prefix}_boil{idx}_climate"
+            # Get operating state sensor ID for boiler
+            self._operating_state_sensor = f"boil{idx}_operating_state"
         elif climate_type.startswith("heating_circuit"):
             idx = climate_type.split("_")[-1]
             self._attr_name = f"{name_prefix.upper()} HC {idx}"
             self._attr_unique_id = f"{name_prefix}_hc{idx}_climate"
             self.entity_id = f"climate.{name_prefix}_hc{idx}_climate"
+            # Get operating state sensor ID for heating circuit
+            self._operating_state_sensor = f"hc{idx}_operating_state"
         else:
             self._attr_name = climate_type.capitalize()
             self._attr_unique_id = f"{name_prefix}_{climate_type}_climate"
             self.entity_id = f"climate.{name_prefix}_{climate_type}_climate"
+            self._operating_state_sensor = None
         self._attr_min_temp = min_temp
         self._attr_max_temp = max_temp
         self._attr_target_temperature_step = temp_step
@@ -198,6 +212,32 @@ class LambdaClimateEntity(CoordinatorEntity, ClimateEntity):
         if not self.coordinator.data:
             return None
         return self.coordinator.data.get(self._target_temp_sensor)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data or not self._operating_state_sensor:
+            return None
+
+        attributes = {}
+        
+        # Get the raw operating state value
+        operating_state = self.coordinator.data.get(self._operating_state_sensor)
+        if operating_state is not None:
+            try:
+                # Convert to integer for mapping
+                state_value = int(operating_state)
+                # Map the state value to text based on the climate type
+                if self._climate_type.startswith("hot_water"):
+                    state_text = BOIL_OPERATING_STATE.get(state_value, f"Unknown state ({state_value})")
+                    attributes["operating_state"] = state_text
+                elif self._climate_type.startswith("heating_circuit"):
+                    state_text = HC_OPERATING_STATE.get(state_value, f"Unknown state ({state_value})")
+                    attributes["operating_state"] = state_text
+            except (ValueError, TypeError):
+                attributes["operating_state"] = f"Invalid state value: {operating_state}"
+
+        return attributes
 
     @property
     def device_info(self):

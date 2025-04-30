@@ -207,33 +207,116 @@ class LambdaSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = sensor_config["name"]
         self._attr_unique_id = sensor_id
         self.entity_id = f"sensor.{sensor_id}"
-        self._attr_native_unit_of_measurement = sensor_config["unit"]
-        
-        # Setze die Genauigkeit
-        if "precision" in sensor_config:
-            self._attr_suggested_display_precision = sensor_config["precision"]
 
-        # Bestimme die Device-Klasse basierend auf der Einheit
-        if sensor_config["unit"] == "°C":
-            self._attr_device_class = SensorDeviceClass.TEMPERATURE
-        elif sensor_config["unit"] == "W":
-            self._attr_device_class = SensorDeviceClass.POWER
-        elif sensor_config["unit"] == "Wh":
-            self._attr_device_class = SensorDeviceClass.ENERGY
-            self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        # Verbesserte Erkennung von Zustandssensoren
+        # Prüfe zuerst, ob es ein Temperatursensor ist
+        if sensor_config.get("unit") == "°C":
+            self._is_state_sensor = False
+        else:
+            # Nur wenn es kein Temperatursensor ist, prüfe auf Zustandssensor
+            state_patterns = [
+                "_operating_state",
+                "_error_state",
+                "_operating_mode",
+                "ambient_state",
+                "hp_state",
+                "request_type"
+            ]
+            self._is_state_sensor = any(pattern in sensor_id for pattern in state_patterns)
+
+        # Setze Attribute basierend auf Sensortyp
+        if self._is_state_sensor:
+            self._attr_native_unit_of_measurement = None
+            self._attr_device_class = None
+            self._attr_state_class = None
+            # Für Zustandssensoren keine Genauigkeit setzen
+        else:
+            self._attr_native_unit_of_measurement = sensor_config["unit"]
+            # Setze die Genauigkeit für numerische Sensoren
+            if "precision" in sensor_config:
+                self._attr_suggested_display_precision = sensor_config["precision"]
+
+            # Bestimme die Device-Klasse basierend auf der Einheit
+            if sensor_config["unit"] == "°C":
+                self._attr_device_class = SensorDeviceClass.TEMPERATURE
+            elif sensor_config["unit"] == "W":
+                self._attr_device_class = SensorDeviceClass.POWER
+            elif sensor_config["unit"] == "Wh":
+                self._attr_device_class = SensorDeviceClass.ENERGY
+                self._attr_state_class = SensorStateClass.TOTAL_INCREASING
 
     @property
-    def native_value(self) -> float | None:
+    def native_value(self) -> float | str | None:
         """Return the state of the sensor."""
         if not self.coordinator.data:
             return None
-            
+
         value = self.coordinator.data.get(self._sensor_id)
         if value is None:
             return None
-            
-        # Die Skalierung wurde bereits im Coordinator angewendet
+
+        # Check if the sensor is a state sensor and map the value to text using the dictionaries in const.py
+        if self._is_state_sensor:
+            from .const import (
+                AMBIENT_OPERATING_STATE,
+                EMGR_OPERATING_STATE,
+                HP_ERROR_STATE,
+                HP_STATE,
+                HP_OPERATING_STATE,
+                HP_REQUEST_TYPE,
+                BOIL_OPERATING_STATE,
+                HC_OPERATING_STATE,
+                HC_OPERATING_MODE,
+            )
+
+            # Ensure value is an integer for state mapping
+            try:
+                numeric_value = int(value)
+            except (ValueError, TypeError):
+                return f"Unknown state ({value})"
+
+            # Verbesserte Zuordnung der State-Mappings
+            state_mapping = None
+            if "ambient_operating_state" in self._sensor_id:
+                state_mapping = AMBIENT_OPERATING_STATE
+            elif "emgr_operating_state" in self._sensor_id:
+                state_mapping = EMGR_OPERATING_STATE
+            elif "error_state" in self._sensor_id:
+                state_mapping = HP_ERROR_STATE
+            elif "_state" in self._sensor_id:
+                if "hp" in self._sensor_id and not "operating" in self._sensor_id:
+                    state_mapping = HP_STATE
+                elif "hp" in self._sensor_id and "operating" in self._sensor_id:
+                    state_mapping = HP_OPERATING_STATE
+                elif "boil" in self._sensor_id:
+                    state_mapping = BOIL_OPERATING_STATE
+                elif "hc" in self._sensor_id:
+                    state_mapping = HC_OPERATING_STATE
+            elif "request_type" in self._sensor_id:
+                state_mapping = HP_REQUEST_TYPE
+            elif "operating_mode" in self._sensor_id:
+                state_mapping = HC_OPERATING_MODE
+
+            if state_mapping is not None:
+                return state_mapping.get(numeric_value, f"Unknown state ({numeric_value})")
+            return f"Unknown mapping for state ({numeric_value})"
+
+        # Return the raw value for non-state sensors
         return value
+
+    @property
+    def device_class(self) -> str | None:
+        """Return the device class of the sensor."""
+        if "state" in self._sensor_id or "mode" in self._sensor_id:
+            return None  # State/mode sensors do not have a numeric device class
+        return super().device_class
+
+    @property
+    def state_class(self) -> str | None:
+        """Return the state class of the sensor."""
+        if "state" in self._sensor_id or "mode" in self._sensor_id:
+            return None  # State/mode sensors do not have a numeric state class
+        return super().state_class
 
     @property
     def device_info(self):
